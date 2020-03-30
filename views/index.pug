@@ -1,0 +1,139 @@
+extends master.pug
+block head    
+    link(rel='stylesheet', href='/static/main.css')
+    link(rel='stylesheet', href='/static/index.css')
+    link(rel='stylesheet', href='/static/lobby.css')
+    link(rel='stylesheet', href='/static/gameplay.css')        
+    link(href='https://fonts.googleapis.com/css?family=Permanent+Marker&display=swap', rel='stylesheet')
+    |
+    link(rel='stylesheet', href='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css')
+    |         
+    link(rel='stylesheet', href='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css')
+    |
+    script(src='https://code.jquery.com/jquery-1.10.2.min.js')  
+    | 
+    script(src='/socket.io/socket.io.js')
+    |     
+    script(src='/main.js')
+    |   
+    script(type='text/javascript')
+    |
+    script.
+      function plus(inc_by, elem_id, max){
+        let elem; let count;
+
+        elem = document.getElementById(elem_id);
+        count = ~~elem.value;
+        console.log(elem.value, max)
+        
+        
+        if (elem.value < max){
+          count += inc_by;
+          elem.value = count;
+        }
+      }
+      function minus(inc_by, elem_id, min, check_id){
+        let elem; let count;
+
+        elem = document.getElementById(elem_id);
+        count = ~~elem.value;
+
+        
+        if (check_id != null && (document.getElementById(check_id)).value==0 && count-inc_by == 0)
+        {
+          return;
+        }
+
+        else if (elem.value > min) {
+          count -= inc_by;
+          elem.value = count;
+        }  
+      }
+block content    
+    ul.pages
+      li.chat.page
+        include header
+        #lobbyContainer     
+          .userboard
+            #users
+              p#user
+          .gameContainer
+            //p#{riddles}
+            p#demo
+            p#answer
+          |         
+          .chatContainer#chatbox
+            ul.messages
+          |       
+          input.inputMessage(placeholder='Type here...')
+      li.gameButtonsPage.page
+        .gameButtonToggle
+          p#gameButtonToggleText ⏵
+        .gameButtonsContainer
+          button.gameAction.joinGame(placeholder='Join Game') Public Game
+          |          
+          br
+          |
+          button.gameAction.joinPrivateGame(placeholder='Join Existing Game') Private Game
+          |          
+          br
+          |
+          button.gameAction.createPrivateGame(placeholder='Create New Game') Create Private Game
+          |
+          br
+          |             
+          button.gameAction.leaveGame(placeholder='Leave Game') Back to Lobby
+          |          
+          br
+      li.login.page
+        include header
+        #mainpageContainer
+          #user_inputs
+            #avatar_select
+            |                 
+            p.label1  choose your fighter
+            #usernamecontainer                 
+                input.input1.usernameInput(type='text', name='username', placeholder=' ☺', required='')
+                |
+                input#go(type='submit', value='Go!', onkeypress='return event.keyCode != 13')
+                |                       
+                p.label1  nickname
+          #info_container
+            button.accordion(id='collapse in', data-parent='#accordion') How to Play
+            |             
+            .panel(style='max-height:70px;')
+              p.small-text And I oop-
+            |             
+            button.accordion(data-parent='#accordion') Updates
+            |
+            .panel
+              p.small-text ????????????/
+            |             
+            button.accordion(data-parent='#accordion') About
+            |             
+            .panel
+              p.small-text Riddle Me This! is ??????
+        |
+        include footer
+        |
+        script.
+          var acc = document.getElementsByClassName("accordion");
+          var i;
+
+          for (i = 0; i < acc.length; i++) {
+            acc[i].addEventListener("click", function() {
+              this.classList.toggle("active");
+              var panel = this.nextElementSibling;
+              if (panel.style.maxHeight)
+              {
+                panel.style.maxHeight = null;
+              } 
+
+              else {
+                panel.style.maxHeight = panel.scrollHeight + "px";
+              } 
+            });
+          }
+
+      
+

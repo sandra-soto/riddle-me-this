@@ -1,0 +1,17 @@
+/* contains CSS for gameplay */
+.gameContainer {
+    background: white;
+    width: 50%;
+    height: 71%;
+    border-radius: 6px;
+    float: left;
+    margin-right: 2%;
+    padding: 10px;
+    text-align: center;
+    box-shadow: 5px 5px 10px #888888;
+    position: relative;
+    font-size: 50px;
+}
+
+
+
