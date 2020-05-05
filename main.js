@@ -50,8 +50,22 @@ $(function() {
       */
   });
 
-  socket.on('updateUserBoard', function(data){
-    $('#user').append("<h1>" + data.userDict + "</h1>"); 
+  socket.on('updateUserBoard', function(mode, data){
+    if(mode == "add"){
+      $('#user').empty();
+      userDict = new Map(data.userDict);
+      userDict = new Map([...userDict.entries()].sort((a, b) => b[1].score - a[1].score));
+      console.log(userDict);
+
+      for (let [key, value] of userDict.entries()) {
+         $('#user').append("<h1>" + value.username + ", " + value.score + "</h1>");
+      }
+      
+     //// $('#user').append("<h1>" + data.player.username + ", " + data.player.score + "</h1>"); 
+      // var elements=document.getElementById('myDiv').children
+      // elements.item(n)
+    }
+    
   });
 
 
@@ -444,12 +458,6 @@ function joinGame(data = {isPrivate: false}){
 
 };
 
-socket.on("addroom", function(data) {
-    socket.emit('subscribe', data);
-    console.log("add", data.room);
-
-});
-
 
 socket.on('joinSuccess', function (data) {
   log('Joining the following game: ' + data.gameID);
@@ -475,11 +483,6 @@ socket.on('leftGame', function (data) {
 
 socket.on('notInGame', function () {
   log('You are not currently in a Game.');
-});
-
-socket.on('gameDestroyed', function (data) { 
-  log(data.lastPlayer + ' destroyed game: ' + data.gameID);
-
 });
 
 function joinPrivateGame(){

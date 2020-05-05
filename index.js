@@ -1,7 +1,6 @@
 // Setup basic express server
 var express = require('express');
 var app = express();
-var fs = require('fs');
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 var port = process.env.PORT || 5000;
@@ -13,7 +12,6 @@ const allRiddles = require("./riddleScraper");
 
 server.listen(port, function () {
   console.log('Server listening at port %d', port);
-  fs.writeFileSync(__dirname + '/start.log', 'started'); 
 });
 
 app.set('view engine', 'pug');
@@ -26,7 +24,7 @@ app.get('/', function(req, res){
   scraper();
   setInterval(function(){
   scraper();},10000); //Empty dict for game-specific maybe? And then rounds
-  
+
   res.render('index'); //{result: result}
 });
 
@@ -42,7 +40,7 @@ module.exports = express.Router();
 
 // Entire gameCollection Object holds all games and info
 var gameCollection =  new function() {
-
+  this.globalGame = undefined;
   this.totalGameCount = 0,
   this.gameDict = new Map()
 
@@ -60,42 +58,59 @@ async function scraper(ridict, rounds){
   }
 }
 
+function newGameObject(socket, data){
+	var gameObject = {};
+  	gameObject.id = data.firstGame || (Math.random()+1).toString(36).slice(2, 18);
+  	gameObject.isPrivate = data.isPrivate;
+ 	gameObject.playerDict = new Map(); 
+
+ 	console.log("Game Created by "+ socket.player['username'] + " w/ " + gameObject.id);
+
+  // shows game has been created in chat box
+  io.emit('gameCreated', {
+   username: socket.player['username'],
+   gameID: gameObject.id
+	});
+
+  // adds player join message to chat box
+  socket.emit('joinSuccess', {gameID: gameObject.id }); 
+
+ 	return gameObject;
+
+}
+
 function buildGame(socket, data) {
-   var gameObject = {};
-   gameObject.id = (Math.random()+1).toString(36).slice(2, 18);
-   gameObject.isPrivate = data.isPrivate;
+	
+  // creates a new game object
+  
+  var gameObject = newGameObject(socket, data);
    
 
-   gameObject.playerDict = new Map(); // adding playerObjects
-   gameObject.playerDict.set(socket.id, socket.player);
+  // increases total count of games and adds game to global collection
+  gameCollection.totalGameCount++;
+  gameCollection.gameDict.set(gameObject.id, gameObject);
 
-   gameCollection.totalGameCount++;
-   gameCollection.gameDict.set(gameObject.id, gameObject);
-
-   console.log("Game Created by "+ socket.player['username'] + " w/ " + gameObject.id);
-   io.emit('gameCreated', {
-    username: socket.player['username'],
-    gameID: gameObject.id
-});
-
-  socket.emit('joinSuccess', {gameID: gameObject.id }); // adds player join message
+      // adds the player to the proper room in socket.io and to the gameObject
   addRoom(socket, gameObject.id);
-  //socket.emit('addroom', {room:gameObject.id});
-  console.log('There are now ' + gameObject.playerDict.size + ' player(s) in game ' + gameObject.id);
-  console.log(gameObject.playerDict);
+  
+
+   
+  
   console.log();
 
 
 }
 
 function showRiddles(riddict) {
-    io.sockets.emit('riddles', riddict);
+  io.sockets.emit('riddles', riddict);
 }
 
 function buildPlayer(socket, username) {
-  var playerObject = {}; // store the player in the socket session for this client
+	// builds a player object to be stored in the socket and in gameObjects
+
+  var playerObject = {}; 
   playerObject.username = username;
-  playerObject.score = 0; // initialized at zero
+  playerObject.score = 0;
 
   return playerObject;
 }
@@ -104,48 +119,32 @@ function buildPlayer(socket, username) {
 
 function killGame(socket) {
 
-  if(!socket.currentRoom.localeCompare('lobby')){ // if the player is in the lobby then do nothing
-    socket.emit('notInGame');
-    return;
-  }
 
   var notInGame = true;
   console.log("leaving the current room which is: " + socket.currentRoom);
 
-  var game = gameCollection['gameDict'].get(socket.currentRoom);
+  var game = getGame(socket.currentRoom);
 
- 
-  if( game['playerDict'].size == 1){ // if the player is the last one in the game, delete the game
+	// if the player is the last one in the game, delete the game
+  if( game['playerDict'].size == 1){ 
 
      --gameCollection.totalGameCount; 
     console.log("Destroy Game "+ socket.currentRoom + "!");
     socket.emit('leftGame', { gameID: socket.currentRoom });
-    socket.broadcast.to(socket.currentRoom).emit('gameDestroyed', {gameID: socket.currentRoom, lastPlayer: socket.player['username']});
     gameCollection.gameDict.delete(socket.currentRoom);
     console.log("Current list of games after deletion: " + Array.from(gameCollection.gameDict.keys()));
     notInGame = false;
 
   }
 
-  else{ // if the player is not the last one in the game (i.e. there are others)
+  else{ // if the player is not the last one in the game (i.e. there are others) just leave the game
       console.log( "User {" + socket.id + ", " + socket.player['username'] + "} has left " + socket.currentRoom);
       socket.emit('leftGame', { gameID: socket.currentRoom });
       notInGame = false;
-
-
-
   }
 
   // re-add to lobby
   addRoom(socket, 'lobby');
-  //socket.emit('addroom', {room: 'lobby'});
-
-  //update game info
-  game.playerDict.delete(socket.id);
-
-  console.log("Users remaining:");
-  console.log("\t");
-  console.log(game.playerDict);
 
 }
 
@@ -153,8 +152,8 @@ function killGame(socket) {
 // finds a game for the player to join
 function gameSeeker (socket, data) {
   ++loopLimit;
-  if ((data.isPrivate == true || gameCollection.totalGameCount == 0) || (loopLimit >= 10)) {
-
+  if ((data.isPrivate == true || gameCollection.totalGameCount == 1) || (loopLimit >= 10)) {
+  	console.log("BUILDING A GAME=============");
     buildGame(socket, data);
     loopLimit = 0;
 
@@ -163,17 +162,23 @@ function gameSeeker (socket, data) {
   else {
 
     if(data.gameID == undefined){ // if not seeking a specific game, then find one
-      var rndPick = Math.floor(Math.random() * gameCollection.totalGameCount);
+
+      var rndPick = Math.floor(Math.random() * (gameCollection.totalGameCount-1));
       var gameIDs = Array.from(gameCollection.gameDict.keys());
+      console.log("POSSIBLE GAMES TO JOIN======");
+      console.log(gameIDs);
       var gameID = gameIDs[rndPick];
       
     }
 
     else{ // if seeking a specfic game, use that game's id
+    	console.log('SEEKING A specific GAME');
       var gameID = data.gameID;
     }
     
-    var game = gameCollection.gameDict.get(gameID);
+    var game = getGame(gameID);
+    console.log("FOUND THIS GAME FOR USER=======");
+    console.log(game);
 
     if (data.gameID != undefined || (!game.isPrivate && game['playerDict'].size < 2)) // change MAX number of players in a room here
     {
@@ -182,24 +187,65 @@ function gameSeeker (socket, data) {
       socket.emit('joinSuccess', {gameID: gameID}); // adds player join message
       game.playerDict.set(socket.id, socket.player); // add the player to the playerDict
       console.log("User {" + socket.id + ", " + socket.player['username'] + "} has been added to: " + gameID);
-      console.log(game.playerDict);
-      io.broadcast.to(gameID).emit('updateUserBoard', {userDict:game});
+      console.log(game['playerDict']);
+      
       
     
 
     }
 
     else {
-      gameSeeker(socket, data);
+      gameSeeker(socket, data); 
     }
   }
 }
 
 function addRoom(socket, gameID){
+
+	
+	// removes the player from the old game
+	var old_game_id = socket.currentRoom;
+		var old_game = getGame(socket.currentRoom);
+		// if game was destroyed then it is undefined and no need to remove the player
+		if (old_game != undefined){
+				old_game['playerDict'].delete(socket.id);
+		}
+
+		  // get new game
+  var game = getGame(gameID); 
+	
+
+	socket.leaveAll();
+	// update socket variables
   socket.currentRoom = gameID;
-  socket.emit('addroom', {room:gameID});
+
+  // join the game room
+  socket.join(gameID);
+  // add the player object to the player dict
+  game['playerDict'].set(socket.id, socket.player);
+
+    if(old_game != undefined){
+    	console.log("uhhhhh");
+    	console.log(old_game);
+
+   	    io.in(old_game_id).emit('updateUserBoard', "add", {userDict:Array.from(old_game['playerDict']),
+	 																			player:socket.player});
+   }
+
+  // update the user board html
+  io.in(gameID).emit('updateUserBoard', "add", {userDict:Array.from(getGame(gameID)['playerDict']),
+																					player:socket.player});
+
+  
+  	console.log(getGame(gameID));
 }
 
+function getGame(gameID){
+	if(gameID == "lobby"){
+		return gameCollection.globalGame;
+	}
+	return gameCollection['gameDict'].get(gameID);
+}
 
 // Chatroom
 
@@ -211,29 +257,12 @@ io.sockets.on('connection', function (socket) {
   var addedUser = false;
   var socket = socket;
 
-
-    socket.on('subscribe', function(data) { // join specific room, make specific room the currentRoom
-      
-      socket.leaveAll();
-      socket.join(data.room); 
-      socket.currentRoom = data.room;
-      
-
-  })
-
-    socket.on('unsubscribe', function(data) { 
-      socket.leave(data.room); })
-
-
   // when the client emits 'new message', this listens and executes
   socket.on('new message', function (data) {
     // we tell the client to execute 'new message'
-
-    socket.score += 1;
-
-    console.log('Current room is: ' + socket.currentRoom);
-    console.log('Current score is: ' + socket.score);
-
+      	socket.player.score++;
+    io.in(socket.currentRoom).emit('updateUserBoard', "add", {userDict:Array.from(getGame(socket.currentRoom)['playerDict']),
+	 													player:socket.player});
 
     socket.broadcast.to(socket.currentRoom).emit('new message', {
       username: socket.player['username'],
@@ -243,28 +272,43 @@ io.sockets.on('connection', function (socket) {
   });
 
 
+
   // when the client emits 'add user', this listens and executes
   socket.on('add user', function (username) {
     if (addedUser) return;
 
-  
-    //store player object in the socket
+  	// store the current room in the socket
+  	socket.currentRoom = 'lobby';
+
+    // store the player in the socket
     socket.player = buildPlayer(socket, username);
-    console.log(socket.player);
-
-
-    socket.score = 0;
+    
+    //update number of total players
     ++numUsers;
-    //users.push(username);
+
     addedUser = true;
 
-	//updateClients(); 
+
+	// update the number of users online
     socket.emit('login', {
       numUsers: numUsers
     });
 
-    //socket.emit('addroom', {room:'lobby'}); // when a user is added to rmt, they join the lobby
-    addRoom(socket, 'lobby');
+
+    
+    // if the lobby hasn't been created, create it
+    if (gameCollection.totalGameCount == 0){ // gamecount zero means no lobby
+    	gameCollection.totalGameCount++;
+    	console.log("CREATING LOBBY");
+  		gameCollection.globalGame = newGameObject(socket, {firstGame:'lobby'});
+  		addRoom(socket, 'lobby');
+  	}
+
+  	// when a user is added to rmt, they join the lobby
+  	else {
+  		addRoom(socket, 'lobby');
+  	}
+    
 
     // echo to the current room that a person has connected
     socket.broadcast.to('lobby').emit('user joined', {
@@ -293,30 +337,25 @@ io.sockets.on('connection', function (socket) {
   socket.on('disconnect', function () {
     if (addedUser) {
       --numUsers;
+      
       killGame(socket);
-      /*
-		for (var i=0; i<users.length;i++){
-		  if(users[i] == socket.username){
-		    delete users[i];
-		    delete [socket.username]
-		  	}
-		  }
-      */
-		//updateClients();
+      // deleting again because killgame emits notingame for lobby CHANGE THIS
+      getGame(socket.currentRoom)['playerDict'].delete(socket.id);
+
+          var gameID = socket.currentRoom;
+  io.in(gameID).emit('updateUserBoard', "add", {userDict:Array.from(getGame(gameID)['playerDict']),
+																					player:socket.player})
+
+      
       // echo globally that this client has left
       socket.broadcast.to(socket.currentRoom).emit('user left', {
         username: socket.player['username'],
         numUsers: numUsers
       });
     }
-    //updateClients();
+
   });
 
-  /*
-    function updateClients(socket) {
-        io.sockets.emit('update', users);
-    }
-    */
 
 
   socket.on('joinGame', function (data = {isPrivate:false, gameID:undefined}){
@@ -325,7 +364,7 @@ io.sockets.on('connection', function (socket) {
 
     var alreadyInGame = false;
 
-    if(('lobby'.localeCompare(socket.currentRoom)) != 0){ // if not in a game
+    if(('lobby'.localeCompare(socket.currentRoom)) != 0){ // if already in a non-lobby game
       alreadyInGame = true;
       console.log(socket.player['username'] + " already has a Game!");
       socket.emit('alreadyJoined', {
@@ -343,8 +382,9 @@ io.sockets.on('connection', function (socket) {
 
 
   socket.on('leaveGame', function() {
-    if (gameCollection.totalGameCount == 0){
-     socket.emit('notInGame');  
+ 
+    if (socket.currentRoom.localeCompare("lobby") == 0){
+    	socket.emit('notInGame');  
    }
 
    else {
