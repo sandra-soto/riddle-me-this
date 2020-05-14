@@ -111,12 +111,10 @@
 
 /*BUTTONS CSS*/
 .gameButtonsContainer {
-  display:flexbox;
   float:left;
-  width:20%;
+  width:15%;
   height: 71%;
-    animation: 7000ms ease-in-out infinite color-change;
-  box-shadow: black;
+  background-color: #eef2ff;
   border-radius: 25px;
   margin-right: 2%;
 
@@ -178,7 +176,7 @@
 
 .gameButtonsPage{
   display: flex;
-  width: 2%;
+  width: 0%;
   align-items: center;
   margin-top: 2%;
   z-index: 10;
