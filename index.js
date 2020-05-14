@@ -19,13 +19,22 @@ app.set('view engine', 'pug');
 app.use(express.static(__dirname));
 
 
+var riddles = new function(){ 	//HEREHERE
+ 	this.riddle1 = {"riddle": "What has to be broken before you can use it?",
+ 					"answer": "an egg"};
+ 	this.riddle2 = {"riddle": " I’m tall when I’m young, and I’m short when I’m old. What am I?",
+ 					"answer": "a candle"};
+ 	this.riddle3 =  {"riddle": "What month of the year has 28 days?",
+ 					"answer": "all of them"};
+ };
 app.get('/', function(req, res){
-  
-  scraper();
-  setInterval(function(){
-  scraper();},10000); //Empty dict for game-specific maybe? And then rounds
+
+  // scraper();
+  // setInterval(function(){
+  // scraper();},10000); //Empty dict for game-specific maybe? And then rounds
 
   res.render('index'); //{result: result}
+
 });
 
 app.get('/terms_conditions', function(req, res){
@@ -40,11 +49,12 @@ module.exports = express.Router();
 
 // Entire gameCollection Object holds all games and info
 var gameCollection =  new function() {
-  this.globalGame = undefined;
+  this.globalGame = undefined,
   this.totalGameCount = 0,
   this.gameDict = new Map()
 
 };
+
 
 async function scraper(ridict, rounds){
   var ridict = {};
@@ -63,6 +73,17 @@ function newGameObject(socket, data){
   	gameObject.id = data.firstGame || (Math.random()+1).toString(36).slice(2, 18);
   	gameObject.isPrivate = data.isPrivate;
  	gameObject.playerDict = new Map(); 
+
+ 	gameObject.riddles = new Map();
+
+ 	gameObject.riddles.set(1,{"riddle": "What has to be broken before you can use it?",
+ 					"answer": "an egg"});
+ 	gameObject.riddles.set(2,{"riddle": " I’m tall when I’m young, and I’m short when I’m old. What am I?",
+ 					"answer": "a candle"});
+ 	gameObject.riddles.set(3,{"riddle": "What month of the year has 28 days?",
+ 					"answer": "all of them"});
+
+ 	 	
 
  	console.log("Game Created by "+ socket.player['username'] + " w/ " + gameObject.id);
 
@@ -200,6 +221,27 @@ function gameSeeker (socket, data) {
   }
 }
 
+
+
+
+function beginGame(socket, gameID){
+	var game = getGame(gameID);
+		//io.emit('testRiddle', game.riddles.get(1));
+	//io.emit('testRiddle', game.riddles);	
+	io.in(socket.currentRoom).emit("roundTimer", Array.from(game.riddles));
+	// while(game.riddles.size != 0){
+		
+	// // set 15 second interval
+
+	// // 	// interval clear if someone gets it right
+	// // 	// eject people at the end lmao
+	// // }
+	
+
+	// }
+
+}
+
 function addRoom(socket, gameID){
 
 	
@@ -235,7 +277,10 @@ function addRoom(socket, gameID){
   // update the user board html
   io.in(gameID).emit('updateUserBoard', "add", {userDict:Array.from(getGame(gameID)['playerDict']),
 																					player:socket.player});
-
+  // if there are 2 people in a room, start the game by showing the riddle
+  if(getGame(gameID)['playerDict'].size == 2){
+  	beginGame(socket, gameID);
+  }
   
   	console.log(getGame(gameID));
 }
@@ -257,17 +302,21 @@ io.sockets.on('connection', function (socket) {
   var addedUser = false;
   var socket = socket;
 
+  socket.on('increasePlayerScore', function(){
+  	socket.player.score++;
+  		    io.in(socket.currentRoom).emit('updateUserBoard', "add", {userDict:Array.from(getGame(socket.currentRoom)['playerDict']),
+	 													player:socket.player});
+  });
+
   // when the client emits 'new message', this listens and executes
   socket.on('new message', function (data) {
     // we tell the client to execute 'new message'
-      	socket.player.score++;
-    io.in(socket.currentRoom).emit('updateUserBoard', "add", {userDict:Array.from(getGame(socket.currentRoom)['playerDict']),
-	 													player:socket.player});
+
+    
 
     socket.broadcast.to(socket.currentRoom).emit('new message', {
       username: socket.player['username'],
       message: data,
-      score: socket.score
     });
   });
 

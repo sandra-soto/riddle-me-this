@@ -100,35 +100,34 @@ select
   outline:none;
 }
 
-body {
-  animation: 7000ms ease-in-out infinite color-change;
-  overflow: hidden;
+
+/* Background Animation CSS */
+
+
+
+.chat.page, .login.page{
+    background: linear-gradient(-45deg,  #3fcdff,#ec6cf9  );
+    background-size:cover;
+  
+    animation: hue-rotate 10s linear infinite;
+    overflow: hidden;
 }
 
+@keyframes hue-rotate {
+  from {
+    -webkit-filter: hue-rotate(0);
+    -moz-filter: hue-rotate(0);
+    -ms-filter: hue-rotate(0);
+    filter: hue-rotate(0);
+  }
+  to {
+    -webkit-filter: hue-rotate(360deg);
+    -moz-filter: hue-rotate(360deg);
+    -ms-filter: hue-rotate(360deg);
+    filter: hue-rotate(360deg);
+  }
+}
 
-
-
-
-
-@keyframes color-change {
-  0% {
-    background-color: #45a3e5;
-  }
-  20% {
-    background-color: #66bf39;
-  }
-  40% {
-    background-color: #eb670f;
-  }
-  60% {
-    background-color: #ff3355;
-  }
-  80% {
-    background-color: #864cbf;
-  }
-  100% {
-    background-color: #45a3e5;
-  }
 }
 
 .center
@@ -165,10 +164,7 @@ ul {
 /* Login Page */
 
 .login.page {
-  animation: 7000ms ease-in-out infinite color-change;
-  position: absolute;
-  width:100%;
-  height:100%;
+ 
   z-index: 15;
 
 }
@@ -263,6 +259,7 @@ html
 {
   margin-top:0;
   height:100%;
+  overflow: hidden;
 }
 
 

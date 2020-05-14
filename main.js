@@ -40,6 +40,9 @@ $(function() {
   var userList = [];
   var socket = io();
 
+
+  var answer;
+
   socket.on('update', function (){
     /*
       userList = users;
@@ -67,6 +70,43 @@ $(function() {
     }
     
   });
+
+
+socket.on('testRiddle', function(riddle){
+    document.getElementById("demo").innerHTML = riddle.riddle;
+    document.getElementById("answer").innerHTML = riddle.answer;
+});
+
+socket.on('roundTimer', function(riddles){
+  var riddles = new Map(riddles);
+
+
+
+
+    async function roundTimer(timeleft = 10){
+      var index = 1;
+                document.getElementById("demo").innerHTML = riddles.get(3).riddle;
+          answer = riddles.get(3).answer;
+      var timer = setInterval(function(){
+        if(timeleft<=0){
+          timeleft = 10;
+          document.getElementById("demo").innerHTML = riddles.get(index).riddle;
+          answer = riddles.get(index).answer;
+          //clearInterval(timer);
+         // document.getElementById("timer").innerHTML = "";
+         
+        }
+        if(index == 4){
+          index = 1;
+        }
+        document.getElementById("timer").innerHTML = timeleft + " seconds";
+      timeleft -=1;
+      index += 1;
+      },1000);
+  }
+  roundTimer();
+});
+
 
 
     socket.on('riddles', function (riddict){
@@ -149,8 +189,15 @@ $(function() {
         username: username,
         message: message
       });
+
+      
       // tell server to execute 'new message' and send along one parameter
       socket.emit('new message', message);
+console.log("asadas");
+       if( answer == message){
+        console.log("aaaaaasadas");
+        socket.emit('increasePlayerScore');
+      }
     }
   }
 
@@ -288,7 +335,7 @@ $(function() {
     if (!onMode && gameButtonsToggled){
       $('.gameAction').fadeOut(fadeSpeed);
       $gameButtonsPage.animate({
-            width: '2%',
+            width: '0%',
         }, fadeSpeed);
 
       gameButtonsToggled = false;
@@ -368,9 +415,14 @@ $(function() {
 
   });
 
-  $gameButtonToggle.mouseenter(function(){
+   $gameButtonToggle.hoverIntent(function(){
     animateGameButtonsPanel(null, onMode = true);
   });
+
+
+  // $gameButtonToggle.mouseenter(function(){
+  //   animateGameButtonsPanel(null, onMode = true);
+  // });
 
 
   $gameActionButton.click(function(){
