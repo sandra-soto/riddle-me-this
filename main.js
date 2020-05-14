@@ -40,16 +40,6 @@ $(function() {
   var userList = [];
   var socket = io();
 
-  socket.on('update', function (){
-    /*
-      userList = users;
-      $('#user').empty();
-      for(var i=0; i<userList.length; i++) {
-          $('#user').append("<h1>" + userList[i] + "</h1>"); 
-      }
-      */
-  });
-
   socket.on('updateUserBoard', function(mode, data){
     if(mode == "add"){
       $('#user').empty();
