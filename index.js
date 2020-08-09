@@ -6,8 +6,17 @@ var io = require('socket.io')(server);
 var port = process.env.PORT || 5000;
 var loopLimit = 0;
 const allRiddles = require("./riddleScraper");
+const riddleDB = require('./database');
 //var router = express.Router()
 
+
+// TO-DO:
+// - fix names of reserved events (disconnect, reconnect, etc)
+// - avatar picker and userlist html
+// - fix userlist js
+// - fix timers
+
+// if a user joins mid round, they can't see the riddle
 
 
 server.listen(port, function () {
@@ -19,21 +28,8 @@ app.set('view engine', 'pug');
 app.use(express.static(__dirname));
 
 
-var riddles = new function(){ 	//HEREHERE
- 	this.riddle1 = {"riddle": "What has to be broken before you can use it?",
- 					"answer": "an egg"};
- 	this.riddle2 = {"riddle": " I’m tall when I’m young, and I’m short when I’m old. What am I?",
- 					"answer": "a candle"};
- 	this.riddle3 =  {"riddle": "What month of the year has 28 days?",
- 					"answer": "all of them"};
- };
 app.get('/', function(req, res){
-
-  // scraper();
-  // setInterval(function(){
-  // scraper();},10000); //Empty dict for game-specific maybe? And then rounds
-
-  res.render('index'); //{result: result}
+  res.render('index');
 
 });
 
@@ -42,9 +38,9 @@ app.get('/terms_conditions', function(req, res){
 });
 
 app.get('/source_code', function(req, res){
-  res.redirect('https://github.com/sandra-soto/RMT')
+  res.redirect('https://github.com/sandra-soto/riddle-me-this')
 });
-module.exports = express.Router();
+
 
 
 // Entire gameCollection Object holds all games and info
@@ -56,34 +52,58 @@ var gameCollection =  new function() {
 };
 
 
-async function scraper(ridict, rounds){
-  var ridict = {};
-  try{
-     const result = await allRiddles(ridict);
-    showRiddles(result);
-    console.log(result);
-  }
-  catch(error){
-      console.log("Error in Scraper: " + error);
-  }
+// sets an interval to call DB for more riddles
+function riddleAdd(gameID){
+  getGame(gameID)['riddleAddTimerID'] = setInterval(function(){
+    const result = riddleDB.getRiddle(10)
+        .then(results => {
+          let game = getGame(gameID);
+          game['riddles'] = game['riddles'].concat(results);
+         
+     })
+     .catch(err => {
+       console.error(err)
+     });
+   }, 90000);
+   
 }
 
+// creates newGameObject, adds player to game, 
+// and adds the game to the gameCollection
+function buildGame(socket,data){
+    const result = riddleDB.getRiddle(10)
+        .then(results => {
+            data.riddles = results;
+            let gameObject = newGameObject(socket, data);
+            if(data.gameID =='lobby'){
+              gameCollection.globalGame = gameObject;
+            }
+            else {
+              // increases total count of games and adds game to global collection
+            gameCollection.totalGameCount++;
+            gameCollection.gameDict.set(gameObject.id, gameObject);
+            }
+
+            // adds the player to the proper room in socket.io and to the gameObject
+            addRoom(socket, data.gameID);
+     })
+     .catch(err => {
+       console.error(err)
+     });
+
+  
+}
+
+// creates the GameObject
 function newGameObject(socket, data){
+  console.log("booboobullshit");
 	var gameObject = {};
-  	gameObject.id = data.firstGame || (Math.random()+1).toString(36).slice(2, 18);
+  	gameObject.id = data.gameID;
   	gameObject.isPrivate = data.isPrivate;
- 	gameObject.playerDict = new Map(); 
-
- 	gameObject.riddles = new Map();
-
- 	gameObject.riddles.set(1,{"riddle": "What has to be broken before you can use it?",
- 					"answer": "an egg"});
- 	gameObject.riddles.set(2,{"riddle": " I’m tall when I’m young, and I’m short when I’m old. What am I?",
- 					"answer": "a candle"});
- 	gameObject.riddles.set(3,{"riddle": "What month of the year has 28 days?",
- 					"answer": "all of them"});
-
- 	 	
+   	gameObject.playerDict = new Map(); 
+    gameObject.riddles = data.riddles;
+    gameObject.timerID = -1;
+    gameObject.riddleAddTimerID = -1; 
 
  	console.log("Game Created by "+ socket.player['username'] + " w/ " + gameObject.id);
 
@@ -95,32 +115,10 @@ function newGameObject(socket, data){
 
   // adds player join message to chat box
   socket.emit('joinSuccess', {gameID: gameObject.id }); 
-
- 	return gameObject;
-
-}
-
-function buildGame(socket, data) {
-	
-  // creates a new game object
-  
-  var gameObject = newGameObject(socket, data);
-   
-
-  // increases total count of games and adds game to global collection
-  gameCollection.totalGameCount++;
-  gameCollection.gameDict.set(gameObject.id, gameObject);
-
-      // adds the player to the proper room in socket.io and to the gameObject
-  addRoom(socket, gameObject.id);
-  
-
-   
-  
-  console.log();
-
+   return gameObject;
 
 }
+
 
 function showRiddles(riddict) {
   io.sockets.emit('riddles', riddict);
@@ -140,7 +138,7 @@ function buildPlayer(socket, username) {
 
 function killGame(socket) {
 
-
+  console.log("KILLGAME CALLED")
   var notInGame = true;
   console.log("leaving the current room which is: " + socket.currentRoom);
 
@@ -149,12 +147,21 @@ function killGame(socket) {
 	// if the player is the last one in the game, delete the game
   if( game['playerDict'].size == 1){ 
 
+    //delete the timer
+    console.log("clearing===========");
+     clearInterval(game['timerID']);
+     clearInterval(game['riddleAddTimerID']);
+     game['timerID'] = -1;
+
      --gameCollection.totalGameCount; 
     console.log("Destroy Game "+ socket.currentRoom + "!");
     socket.emit('leftGame', { gameID: socket.currentRoom });
     gameCollection.gameDict.delete(socket.currentRoom);
     console.log("Current list of games after deletion: " + Array.from(gameCollection.gameDict.keys()));
     notInGame = false;
+
+    
+
 
   }
 
@@ -173,8 +180,10 @@ function killGame(socket) {
 // finds a game for the player to join
 function gameSeeker (socket, data) {
   ++loopLimit;
-  if ((data.isPrivate == true || gameCollection.totalGameCount == 1) || (loopLimit >= 10)) {
+  if ((data.isPrivate == true || gameCollection.totalGameCount < 2) || (loopLimit >= 10)) {
   	console.log("BUILDING A GAME=============");
+    // new random gameID
+    data.gameID = (Math.random()+1).toString(36).slice(2, 18);
     buildGame(socket, data);
     loopLimit = 0;
 
@@ -203,15 +212,12 @@ function gameSeeker (socket, data) {
 
     if (data.gameID != undefined || (!game.isPrivate && game['playerDict'].size < 2)) // change MAX number of players in a room here
     {
-      //socket.emit('addroom', {room: gameID}); // add player to randomly picked room
+    
       addRoom(socket, gameID);
       socket.emit('joinSuccess', {gameID: gameID}); // adds player join message
       game.playerDict.set(socket.id, socket.player); // add the player to the playerDict
       console.log("User {" + socket.id + ", " + socket.player['username'] + "} has been added to: " + gameID);
-      console.log(game['playerDict']);
-      
-      
-    
+ 
 
     }
 
@@ -224,65 +230,97 @@ function gameSeeker (socket, data) {
 
 
 
+
+
 function beginGame(socket, gameID){
+
 	var game = getGame(gameID);
-		//io.emit('testRiddle', game.riddles.get(1));
-	//io.emit('testRiddle', game.riddles);	
-	io.in(socket.currentRoom).emit("roundTimer", Array.from(game.riddles));
-	// while(game.riddles.size != 0){
-		
-	// // set 15 second interval
-
-	// // 	// interval clear if someone gets it right
-	// // 	// eject people at the end lmao
-	// // }
 	
+  let scraperTime = 0;
+  let timeleft = 10;
 
-	// }
+  io.in(gameID).emit("RiddleUpdate", game['riddles'][game['riddles'].length-1].document);
+
+
+  game['timerID'] = setInterval(function(){
+    if(timeleft<=0){
+
+      // remove the riddle already used
+      console.log(game['riddles']);
+      game['riddles'].pop();
+      
+      timeleft = 10;
+   
+      console.log(game);
+      io.in(gameID).emit("RiddleUpdate",game['riddles'][game['riddles'].length-1].document);
+
+    }
+
+      timeleft -=1;
+      scraperTime +=1;
+       io.in(gameID).emit("TimeUpdate", timeleft);
+
+    },1000);
+
+
+  riddleAdd(gameID);
+
+    console.log(game['timerID']);
+
+  //io.in(gameID).emit("roundTimer", Array.from(game.riddles));
+	
 
 }
 
 function addRoom(socket, gameID){
 
 	
-	// removes the player from the old game
+	// removes the player from the old game, if there is one (currentRoom is not undefined)
 	var old_game_id = socket.currentRoom;
-		var old_game = getGame(socket.currentRoom);
-		// if game was destroyed then it is undefined and no need to remove the player
-		if (old_game != undefined){
-				old_game['playerDict'].delete(socket.id);
-		}
+  console.log(`addRoom === ${socket.player.username} is leaving ${old_game_id} and joining ${gameID}`);
+	var old_game = getGame(socket.currentRoom);
 
-		  // get new game
+
+  socket.leaveAll();
+
+	// if game was destroyed then it is undefined and no need to remove the player
+	if (old_game != undefined){
+			old_game['playerDict'].delete(socket.id);
+
+      // update the userBoard for the old game
+      io.in(old_game_id).emit('updateUserBoard', "add", {userDict:Array.from(old_game['playerDict']),
+                                        player:socket.player});
+  }
+
+  // get new game
   var game = getGame(gameID); 
-	
 
-	socket.leaveAll();
+	
 	// update socket variables
   socket.currentRoom = gameID;
 
   // join the game room
   socket.join(gameID);
+
   // add the player object to the player dict
   game['playerDict'].set(socket.id, socket.player);
 
-    if(old_game != undefined){
-    	console.log("uhhhhh");
-    	console.log(old_game);
-
-   	    io.in(old_game_id).emit('updateUserBoard', "add", {userDict:Array.from(old_game['playerDict']),
-	 																			player:socket.player});
-   }
-
-  // update the user board html
+  
+  // update the user board in the new game
   io.in(gameID).emit('updateUserBoard', "add", {userDict:Array.from(getGame(gameID)['playerDict']),
 																					player:socket.player});
+
   // if there are 2 people in a room, start the game by showing the riddle
-  if(getGame(gameID)['playerDict'].size == 2){
-  	beginGame(socket, gameID);
+  // if(getGame(gameID)['playerDict'].size == 2){
+  // 	beginGame(socket, gameID);
+  // }
+
+  // if the game hasn't started yet, start it
+  if(getGame(gameID)['timerID'] == -1 && ((old_game_id !='lobby' && gameID == 'lobby') || (old_game_id == 'lobby' && gameID != 'lobby'))){
+    beginGame(socket, gameID);
   }
+
   
-  	console.log(getGame(gameID));
 }
 
 function getGame(gameID){
@@ -295,7 +333,6 @@ function getGame(gameID){
 // Chatroom
 
 var numUsers = 0;
-//var users = []
 
 io.sockets.on('connection', function (socket) {
 
@@ -312,8 +349,6 @@ io.sockets.on('connection', function (socket) {
   socket.on('new message', function (data) {
     // we tell the client to execute 'new message'
 
-    
-
     socket.broadcast.to(socket.currentRoom).emit('new message', {
       username: socket.player['username'],
       message: data,
@@ -326,8 +361,8 @@ io.sockets.on('connection', function (socket) {
   socket.on('add user', function (username) {
     if (addedUser) return;
 
-  	// store the current room in the socket
-  	socket.currentRoom = 'lobby';
+  	// store the current room in the socket, currenntly not in a room
+  	socket.currentRoom = undefined;
 
     // store the player in the socket
     socket.player = buildPlayer(socket, username);
@@ -349,8 +384,8 @@ io.sockets.on('connection', function (socket) {
     if (gameCollection.totalGameCount == 0){ // gamecount zero means no lobby
     	gameCollection.totalGameCount++;
     	console.log("CREATING LOBBY");
-  		gameCollection.globalGame = newGameObject(socket, {firstGame:'lobby'});
-  		addRoom(socket, 'lobby');
+  		buildGame(socket, {gameID:'lobby'});
+ 
   	}
 
   	// when a user is added to rmt, they join the lobby
@@ -445,5 +480,17 @@ io.sockets.on('connection', function (socket) {
 
 });
 
+// scraping function which was used to populate the DB
+async function scraper(ridict, rounds){
+  var ridict = {};
+  try{
+     const result = await allRiddles(ridict);
+    showRiddles(result);
+    console.log(result);
+  }
+  catch(error){
+      console.log("Error in Scraper: " + error);
+  }
+}
 
 

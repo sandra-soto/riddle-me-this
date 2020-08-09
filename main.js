@@ -51,53 +51,54 @@ $(function() {
          $('#user').append("<h1>" + value.username + ", " + value.score + "</h1>");
       }
       
-     //// $('#user').append("<h1>" + data.player.username + ", " + data.player.score + "</h1>"); 
-      // var elements=document.getElementById('myDiv').children
-      // elements.item(n)
     }
     
   });
 
 
-socket.on('testRiddle', function(riddle){
-    document.getElementById("demo").innerHTML = riddle.riddle;
-    document.getElementById("answer").innerHTML = riddle.answer;
+socket.on('TimeUpdate', function(seconds){
+	document.getElementById("timer").innerHTML = seconds + " seconds";
 });
 
-socket.on('roundTimer', function(riddles){
-  var riddles = new Map(riddles);
+socket.on('RiddleUpdate', function(riddleObj){
+	document.getElementById("demo").innerHTML = riddleObj.riddle;
+	document.getElementById("answer").innerHTML = "_ ".repeat(riddleObj.answer.length);
+});
+
+// socket.on('roundTimer', function(riddles){
+//   var riddles = new Map(riddles);
 
 
 
 
-    async function roundTimer(timeleft = 10){
-      var index = 1;
-                document.getElementById("demo").innerHTML = riddles.get(3).riddle;
-          answer = riddles.get(3).answer;
-      var timer = setInterval(function(){
-        if(timeleft<=0){
-          timeleft = 10;
-          document.getElementById("demo").innerHTML = riddles.get(index).riddle;
-          answer = riddles.get(index).answer;
-          //clearInterval(timer);
-         // document.getElementById("timer").innerHTML = "";
+//     async function roundTimer(timeleft = 10){
+//       var index = 1;
+//                 document.getElementById("demo").innerHTML = riddles.get(3).riddle;
+//           answer = riddles.get(3).answer;
+//       var timer = setInterval(function(){
+//         if(timeleft<=0){
+//           timeleft = 10;
+//           document.getElementById("demo").innerHTML = riddles.get(index).riddle;
+//           answer = riddles.get(index).answer;
+//           //clearInterval(timer);
+//          // document.getElementById("timer").innerHTML = "";
          
-        }
-        if(index == 4){
-          index = 1;
-        }
-        document.getElementById("timer").innerHTML = timeleft + " seconds";
-      timeleft -=1;
-      index += 1;
-      },1000);
-  }
-  roundTimer();
-});
+//         }
+//         if(index == 4){
+//           index = 1;
+//         }
+//         document.getElementById("timer").innerHTML = timeleft + " seconds";
+//       timeleft -=1;
+//       index += 1;
+//       },1000);
+//   }
+//   roundTimer();
+// });
 
 
 
-    socket.on('riddles', function (riddict){
-      result = riddict
+socket.on('riddles', function (riddict){
+    result = riddict
 
     function basicGameplay(){
       var answertest = JSON.parse(JSON.stringify(Object.values(result)));
@@ -181,6 +182,7 @@ socket.on('roundTimer', function(riddles){
       // tell server to execute 'new message' and send along one parameter
       socket.emit('new message', message);
 console.log("asadas");
+// fix l8r
        if( answer == message){
         console.log("aaaaaasadas");
         socket.emit('increasePlayerScore');
