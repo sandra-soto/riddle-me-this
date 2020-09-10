@@ -15,8 +15,13 @@ function simpleAnswer(answerString){
 
 // matches the attempt to the answerString
 function answerMatch(answerString, attempt){
-	return eval(`/^(because)*(a)*(an)*(the)*( )*(${attempt})*$/`).test(answerString);
+	let str = simpleAnswer(attempt);
+	// bad fix -- need to fix entries in DB 
+	return eval(`/^(because)*(a)*(an)*(the)*( )*(${str})*([.,!?"';])*$/i`).test(answerString);
 }
 
-module.exports = answer;
+module.exports = {
+	answerMatch
+}
+
 

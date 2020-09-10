@@ -14,8 +14,8 @@ $(function() {
   var $messages = $('.messages'); // Messages area
   var $inputMessage = $('.inputMessage'); // Input message input box
 
-  var $userboard = $('.userboard'); 
-  var $gameContainer = $('.gameContainer'); 
+  var $userboard = $('#userboard'); 
+  var $gameContainer = $('#gameContainer'); 
 
   var $loginPage = $('.login.page'); // The login page
   var $goButton = $('#go');
@@ -23,7 +23,6 @@ $(function() {
   var $joinGame = $('.joinGame'); 
   var $joinPrivateGame = $('.joinPrivateGame');
   var $createPrivateGame = $('.createPrivateGame'); 
-  var $leaveGame = $('.leaveGame'); 
   var $gameButtonToggle = $('.gameButtonToggle');
   var $gameButtonsContainer = $('.gameButtonsContainer');
   var $gameButtonsPage = $('.gameButtonsPage');
@@ -40,18 +39,48 @@ $(function() {
   var userList = [];
   var socket = io();
 
+
+
+
+
+  function listUsers(userDict, location, num = "all", style = ""){
+
+  	
+  	 for (let [key, value] of userDict.entries()) {
+      	num--;
+         eval(`$("#${location}")`).append(`<div id='user_container' ${style}>` + 
+         						`<div class='avi_head_small ${value.avatar.shape}' style='background-color:${getUsernameColor(value.username)}'>`+ "<br>" +
+         							`<p id='face'> ${value.avatar.face}</p>` +
+
+         						"</div>"+
+
+         						`<p id = 'user_info'>${value.username}, ${value.score}` + "</div>");
+         if(num == 0){
+         	return;
+         }
+      }
+  }
+
+
   socket.on('updateUserBoard', function(mode, data){
     if(mode == "add"){
-      $('#user').empty();
+      $userboard.empty();
       userDict = new Map(data.userDict);
       userDict = new Map([...userDict.entries()].sort((a, b) => b[1].score - a[1].score));
       console.log(userDict);
 
-      for (let [key, value] of userDict.entries()) {
-         $('#user').append("<h1>" + value.username + ", " + value.score + "</h1>");
-      }
+      listUsers(userDict, "userboard");
       
     }
+    
+  });
+
+   socket.on('test', function(mode, data){
+
+   	$gameContainer.css('color', 'grey')
+   	sleep(3000).then(() => {
+	    $gameContainer.css('color', 'black')
+	});
     
   });
 
@@ -61,90 +90,60 @@ socket.on('TimeUpdate', function(seconds){
 });
 
 socket.on('RiddleUpdate', function(riddleObj){
-	document.getElementById("demo").innerHTML = riddleObj.riddle;
-	document.getElementById("answer").innerHTML = "_ ".repeat(riddleObj.answer.length);
+	document.getElementById("riddle").innerHTML = riddleObj.riddle;
+	let ans = "";
+	for(let i = 0; i < riddleObj.answer.length; i++){
+		if(riddleObj.answer[i] == " "){
+			ans += "\xa0\xa0";
+		}
+		else if(riddleObj.answer[i] == "!"||riddleObj.answer[i] == "-"){
+			ans += riddleObj.answer[i];
+		}
+		else{
+			ans += "_ ";
+		}
+	}
+	document.getElementById("answer").innerHTML = ans;
 });
 
-// socket.on('roundTimer', function(riddles){
-//   var riddles = new Map(riddles);
+function sleep (time) {
+	  return new Promise((resolve) => setTimeout(resolve, time));
+	}
+
+socket.on('ShowAnswer', function(answer){
+	document.getElementById("riddle").innerHTML = answer;
+	document.getElementById("timer").innerHTML = "\xa0";
+	document.getElementById("answer").innerHTML = "\xa0";
+
+});
+
+socket.on('RoundWinners', function(players){
+	userDict = new Map(players);
+	let num = 0;
+	document.getElementById("riddle").innerHTML = `Leaderboard<br />`;
+	document.getElementById("answer").innerHTML = "\xa0";
+
+	listUsers(userDict, "leaderBoard", 3, "style='justify-content:center'");
+	// sleep time expects milliseconds
+	function sleep (time) {
+	  return new Promise((resolve) => setTimeout(resolve, time));
+	}
+
+	// Usage!
+	sleep(5000).then(() => {
+	    $("#leaderBoard").empty();
+	});
 
 
+});
 
-
-//     async function roundTimer(timeleft = 10){
-//       var index = 1;
-//                 document.getElementById("demo").innerHTML = riddles.get(3).riddle;
-//           answer = riddles.get(3).answer;
-//       var timer = setInterval(function(){
-//         if(timeleft<=0){
-//           timeleft = 10;
-//           document.getElementById("demo").innerHTML = riddles.get(index).riddle;
-//           answer = riddles.get(index).answer;
-//           //clearInterval(timer);
-//          // document.getElementById("timer").innerHTML = "";
-         
-//         }
-//         if(index == 4){
-//           index = 1;
-//         }
-//         document.getElementById("timer").innerHTML = timeleft + " seconds";
-//       timeleft -=1;
-//       index += 1;
-//       },1000);
-//   }
-//   roundTimer();
-// });
-
-
-
-socket.on('riddles', function (riddict){
-    result = riddict
-
-    function basicGameplay(){
-      var answertest = JSON.parse(JSON.stringify(Object.values(result)));
-      var testlist = JSON.parse(JSON.stringify(Object.keys(result)));
-      //console.log(testlist)
-      //console.log(testlist);
-
-      var move = testlist[Math.floor(Math.random()*testlist.length)];
-      var ans = answertest[Math.floor(Math.random()*answertest.length)];
-      //if(rounds != 0)
-      // {
-      document.getElementById("demo").innerHTML = move;
-      document.getElementById("answer").innerHTML = ans;
-      //    rounds -= 1;
-      // }
-      // gameState = 1;
-      // for(var i in players){
-      //   var playerWin = playerWinCheck(players[i].message);
-      //   if(playerWin){
-      //     players[i].score += 1;
-      //   }
-      //}
-      }
-    function playerWinCheck(message){
-    var playerWins = false;
-    if(message == move){
-    playerWins = true;
-    }
-    return playerWins;
-    }
-    basicGameplay();
-    setInterval(function(){
-    basicGameplay();},3000);
-
-    //console.log("Result is:" + $('#result'))
-      
-  });
 
 
   function addParticipantsMessage (data) {
     var message = '';
     if (data.numUsers === 1) {
       message += "I walk a lonely road. The only one that I have ever known. One(1) user online";
-    } else {
-      message += "there are " + data.numUsers + " players in the Lobby";
-    }
+    } 
     log(message);
   }
 
@@ -160,7 +159,9 @@ socket.on('riddles', function (riddict){
       $currentInput = $inputMessage.focus();
 
       // Tell the server your username
-      socket.emit('add user', username);
+      let data = get_avatar();
+      data['username'] = username; // GO BACK HERE SANDRA 
+      socket.emit('add user', data);
       
     }
   }
@@ -178,15 +179,9 @@ socket.on('riddles', function (riddict){
         message: message
       });
 
-      
       // tell server to execute 'new message' and send along one parameter
       socket.emit('new message', message);
-console.log("asadas");
-// fix l8r
-       if( answer == message){
-        console.log("aaaaaasadas");
-        socket.emit('increasePlayerScore');
-      }
+      console.log("asadas");
     }
   }
 
@@ -195,11 +190,6 @@ console.log("asadas");
     var $el = $('<li>').addClass('log').text(message);
     addMessageElement($el, options);
   }
-
-
-
-
-
 
 
 
@@ -333,7 +323,7 @@ console.log("asadas");
       $('.gameAction').show();
       $gameButtonsPage.animate({
             width: '100%'
-        }, 1000);
+        }, fadeSpeed);
 
       gameButtonsToggled = true;
     }
@@ -387,11 +377,6 @@ console.log("asadas");
 
   });
 
-  $leaveGame.click(function () {
-    leaveGame();
-
-  });
-
   $createPrivateGame.click(function() {
     joinGame({isPrivate:true});
   });
@@ -409,19 +394,87 @@ console.log("asadas");
   });
 
 
-  // $gameButtonToggle.mouseenter(function(){
-  //   animateGameButtonsPanel(null, onMode = true);
-  // });
-
-
   $gameActionButton.click(function(){
-    animateGameButtonsPanel(1100);
+    animateGameButtonsPanel(1000);
   });
 
   $gameButtonsPage.click(function(e){
     if(e.target != this) return;
-    animateGameButtonsPanel(1100, null, offMode = true);
+    animateGameButtonsPanel(1000, null, offMode = true);
   });
+
+function mod(n, m) {
+  return ((n % m) + m) % m;
+}
+  var eyes = {0:"^", 1:"•", 2:"*", 3:"u", 4:"ㅠ", 5:"-", 6:"ㅜ", 7:"★", 8:"ㅇ", 9:"◕", 10:"￢", 11:"✧",
+  				 12:"♡", 13:"x", 14:"⌣̀"};
+  var mouths = {0:".", 1:"_", 2:"__", 3: "ㅅ", 4:" ", 5:"◡", 6:"ω", 7:"‿", 6:"‸", 7:"ｪ", 8:"ᴗ", 9:"︹"};
+  var shapes = {0:"circle", 1:"square"};
+  var eye_index = 0;
+  var mouth_index = 0;
+  var shape_index = 0;
+  var e_idx = Object.keys(eyes).length;
+  var m_idx = Object.keys(mouths).length;
+  var s_idx = Object.keys(shapes).length;
+
+  function face_builder(){
+  	
+  	return eyes[get_index('eye')]+mouths[get_index('mouth')]+eyes[get_index('eye')];
+  }
+
+  function get_index(type){
+  	return mod(eval(`${type}_index`), eval(`${type[0]}_idx`));
+  }
+
+  function get_avatar(){
+  	return{face: face_builder(), shape: shapes[get_index('shape')]};
+  }
+  	$(`div.left_btn button:nth-child(${1})`).click(function(e){
+    	eye_index -=1;
+    	document.getElementById("face").innerHTML = face_builder();
+
+  });
+
+  	$(`div.right_btn button:nth-child(${1})`).click(function(e){
+    	eye_index +=1;
+    	document.getElementById("face").innerHTML = face_builder();
+
+  });
+
+  $(`div.left_btn button:nth-child(${2})`).click(function(e){
+
+    	
+    	$('#av').removeClass(shapes[get_index('shape')]);
+    	shape_index -=1;
+    	$('#av').addClass(shapes[get_index('shape')]);
+
+
+  });
+
+  	$(`div.right_btn button:nth-child(${2})`).click(function(e){
+    	
+    	
+    	$('#av').removeClass(shapes[get_index('shape')]);
+    	shape_index -=1;
+    	$('#av').addClass(shapes[get_index('shape')]);
+
+
+  });
+
+  $(`div.left_btn button:nth-child(${3})`).click(function(e){
+    	mouth_index -=1;
+    	document.getElementById("face").innerHTML = face_builder();
+
+  });
+
+    $(`div.right_btn button:nth-child(${3})`).click(function(e){
+    	mouth_index +=1;
+    	document.getElementById("face").innerHTML = face_builder();
+
+  });
+ 
+
+
 
 
   // Socket events
@@ -431,7 +484,7 @@ console.log("asadas");
   socket.on('login', function (data) {
     connected = true;
     // Display the welcome message
-    var message = "Welcome to the Riddle Me This! Lobby ";
+    var message = "Welcome to Riddle Me This! Have fun!";
     log(message, {
       prepend: true
     });
@@ -485,6 +538,7 @@ console.log("asadas");
    log('you have been reconnected');
    if (username) {
      socket.emit('add user', username);
+
    }
  });
   
@@ -496,40 +550,16 @@ console.log("asadas");
 //Join into an Existing Game
 function joinGame(data = {isPrivate: false}){
   socket.emit('joinGame', data);
-
 };
-
 
 socket.on('joinSuccess', function (data) {
   log('Joining the following game: ' + data.gameID);
 
 });
 
-
-
-//Response from Server on existing User found in a game
-socket.on('alreadyJoined', function (data) {
-  log('You are already in an Existing Game: ' + data.gameID);
-});
-
-
-function leaveGame(){
-  socket.emit('leaveGame');
-};
-
-
 socket.on('leftGame', function (data) {
   log('Leaving Game ' + data.gameID);
 });
-
-socket.on('notInGame', function () {
-  log('You are not currently in a Game.');
-});
-
-function joinPrivateGame(){
-  
-  //socket.emit('subscribe', gameID);
-};
 
 
 

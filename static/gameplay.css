@@ -1,16 +1,103 @@
 /* contains CSS for gameplay */
-.gameContainer {
-    background: white;
-    width: 50%;
-    height: 71%;
-    border-radius: 6px;
-    float: left;
-    margin-right: 2%;
-    padding: 10px;
-    text-align: center;
-    box-shadow: 5px 5px 10px #888888;
-    position: relative;
-    font-size: 50px;
+#gameContainer {
+  background: white;
+  width: 50%;
+  height: 67%;
+  border-radius: 6px;
+  float: left;
+  margin-right: 2%;
+  padding: 10px;
+  text-align: center;
+  box-shadow: 5px 5px 10px #888888;
+  position: relative;
+}
+
+#timer {
+  font-size: 40px;
+  font-weight: bold;
+}
+
+#riddle {
+  font-size: 30px;
+}
+
+/* css for user board */
+
+#userboard {
+  background: white;
+  width: 15%;
+  height: 67%;
+  border-radius: 6px;
+  float: left;
+  margin-right: 2%;
+  padding: 10px;
+  text-align: center;
+  box-shadow: 5px 5px 10px #888888;
+}
+
+#user {
+  display: flex;
+  align-items: center;
+
+}
+
+#user_container{
+  display: flex;
+  align-items: center;
+  padding-bottom: 5px;
+}
+
+#user_info {
+  padding-left: 10px;
+}
+
+#leaderBoard {
+  
+}
+
+/* css for chat/messages */
+
+.chatContainer {
+  background: white;
+  width: 25%;
+  height: 67%;
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+  box-shadow: 5px 5px 10px #888888;
+}
+
+
+
+.messages {
+  height: 100%;
+  margin: 0;
+  overflow-y: scroll;
+  padding: 10px 20px 10px 20px;
+}
+
+.message.typing .messageBody {
+  color: gray;
+}
+
+.username {
+  font-weight: 700;
+  overflow: hidden;
+  padding-right: 15px;
+  text-align: right;
+}
+
+.inputMessage {
+  border:2px solid white;
+  border-radius: 10px;
+  bottom: 0;
+  height: 45px;
+  left: 0;
+  outline: none;
+  padding-left: 10px;
+  position: absolute;
+  right: 0;
+  width: 100%;
 }
 
 

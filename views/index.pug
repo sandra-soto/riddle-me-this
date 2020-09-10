@@ -1,25 +1,5 @@
 extends master.pug
-block head    
-    link(rel='stylesheet', href='/static/main.css')
-    link(rel='stylesheet', href='/static/index.css')
-    link(rel='stylesheet', href='/static/lobby.css')
-    link(rel='stylesheet', href='/static/gameplay.css')        
-    link(href='https://fonts.googleapis.com/css?family=Permanent+Marker&display=swap', rel='stylesheet')
-    |
-    link(rel='stylesheet', href='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css')
-    |         
-    link(rel='stylesheet', href='//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css')
-    |
-    script(src='https://code.jquery.com/jquery-1.10.2.min.js')  
-    |
-    script(src="/jquery.hoverIntent.js")
-    | 
-    script(src='/socket.io/socket.io.js')
-    |     
-    script(src='/main.js')
-    |   
-    script(type='text/javascript')
-    |
+block head
     script.
       function plus(inc_by, elem_id, max){
         let elem; let count;
@@ -50,19 +30,19 @@ block head
           count -= inc_by;
           elem.value = count;
         }  
-      }
+      }    
 block content    
     ul.pages
       li.chat.page
         include header
         #lobbyContainer     
-          .userboard
-            #users
-              p#user
-          .gameContainer
+          #userboard
+             #user_container
+          #gameContainer
             p#timer
-            p#demo
+            p#riddle
             p#answer
+            #leaderBoard
           |         
           .chatContainer#chatbox
             ul.messages
@@ -72,30 +52,43 @@ block content
         .gameButtonToggle
           p#gameButtonToggleText ⏵
         .gameButtonsContainer
-          button.gameAction.joinGame(placeholder='Join Game') Public Game
+          button.gameAction.joinGame(placeholder='Join Game') New Public Game
           |          
           br
           |
-          button.gameAction.joinPrivateGame(placeholder='Join Existing Game') Private Game
+          button.gameAction.createPrivateGame(placeholder='Create New Game') New Private Game
           |          
           br
           |
-          button.gameAction.createPrivateGame(placeholder='Create New Game') Create Private Game
+          button.gameAction.joinPrivateGame(placeholder='Join Existing Game') Join Private Game
           |
-          br
-          |             
-          button.gameAction.leaveGame(placeholder='Leave Game') Back to Lobby
-          |          
           br
       li.login.page
         include header
         #mainpageContainer
           #user_inputs
             #avatar_select
+              .avatar.left_btn
+                button.select_button(type='button') ◀
+                button.select_button(type='button') ◀ 
+                button.select_button(type='button') ◀
+              .avatar#avatar_image
+                .shape.avi_head.circle#av
+                  .shape-inner.avi_head
+                      .shape-front.avi_head 
+                        .face
+                          br
+                          p#face ^.^
+                      .shape-back.avi_head
+                        p#rmt RMT
+              .avatar.right_btn
+                button.select_button(type='button') ▶
+                button.select_button(type='button') ▶
+                button.select_button(type='button') ▶
             |                 
             p.label1  choose your fighter
             #usernamecontainer                 
-                input.input1.usernameInput(type='text', name='username', placeholder=' ☺', required='')
+                input.input1.usernameInput(type='text', name='username', placeholder=' ☺', required='', maxlength="20")
                 |
                 input#go(type='submit', value='Go!', onkeypress='return event.keyCode != 13')
                 |                       
@@ -104,17 +97,17 @@ block content
             button.accordion(id='collapse in', data-parent='#accordion') How to Play
             |             
             .panel(style='max-height:70px;')
-              p.small-text And I oop-
+              p.small-text Race against the clock and compete against others to answer riddles! Click "Go!" to start.
             |             
             button.accordion(data-parent='#accordion') Updates
             |
             .panel
-              p.small-text ????????????/
+              p.small-text 9/10 Ver. 0 - RMT is released for testing!
             |             
             button.accordion(data-parent='#accordion') About
             |             
             .panel
-              p.small-text Riddle Me This! is ??????
+              p.small-text Riddle Me This! is a timed riddle-guessing game in which you can compete against strangers or friends. 
         |
         include footer
         |

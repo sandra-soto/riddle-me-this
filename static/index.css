@@ -21,7 +21,7 @@
 
 
 .panel {
-  padding: 0 18px;
+  padding: 0px 18px 5px;
   background-color: white;
   max-height: 0;
   overflow: hidden;
@@ -44,7 +44,53 @@
   width:400px;
   height: 200px;
   border-radius: 25px;
+  display: flex;
+  justify-content:space-between;
+  overflow: hidden;
   
+  
+}
+
+
+.avatar
+{
+  display: flex;
+  flex-direction: column;
+}
+
+.face p
+{
+  font-family: 'helvetica';
+}
+
+.select_button
+{
+  height: 100%;
+  border:none;
+  width: 50px;
+  color: grey;
+}
+
+
+
+
+.select_button:hover
+{
+  background-color: rgba(202, 205, 219, .8);
+  border:none;
+}
+
+.select_button:focus {
+    border: none;
+    outline: none;
+    background-color: rgba(202, 205, 219, 1);
+}
+
+
+#avatar_image
+{
+  display: flex;
+  justify-content: center;
 }
 
 
@@ -84,6 +130,7 @@
   opacity:0.6;
   border-radius: 25px;
   min-width: 150px;
+  overflow: hidden;
 }
 
 
