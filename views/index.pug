@@ -1,78 +1,73 @@
-extends master.pug
-block head
-    script.
-      function plus(inc_by, elem_id, max){
-        let elem; let count;
+doctype html
+html
+  head
+    meta(http-equiv='Content-Type', content='text/html; charset=utf-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1')
 
-        elem = document.getElementById(elem_id);
-        count = ~~elem.value;
-        console.log(elem.value, max)
-        
-        
-        if (elem.value < max){
-          count += inc_by;
-          elem.value = count;
-        }
-      }
-      function minus(inc_by, elem_id, min, check_id){
-        let elem; let count;
-
-        elem = document.getElementById(elem_id);
-        count = ~~elem.value;
-
-        
-        if (check_id != null && (document.getElementById(check_id)).value==0 && count-inc_by == 0)
-        {
-          return;
-        }
-
-        else if (elem.value > min) {
-          count -= inc_by;
-          elem.value = count;
-        }  
-      }    
-block content    
+    |         
+    title Riddle Me This!
+    |     
+    link(href='https://fonts.googleapis.com/css?family=Permanent+Marker&display=swap', rel='stylesheet')
+    link(href='https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap', rel='stylesheet')       
+    link(rel='stylesheet', href='/static/index.css')
+    link(rel='stylesheet', href='/static/lobby.css')
+    link(rel='stylesheet', href='/static/gameplay.css')
+    link(rel='apple-touch-icon', sizes='180x180', href='/image/apple-touch-icon.png')
+    link(rel='icon', type='image/png', sizes='32x32', href='/image/favicon-32x32.png')
+    link(rel='icon', type='image/png', sizes='16x16', href='/image/favicon-16x16.png')
+    link(rel='manifest', href='/image/site.webmanifest')
+    |
+    script(src='https://code.jquery.com/jquery-1.10.2.min.js')  
+    |
+    script(src="/jquery.hoverIntent.js")
+    | 
+    script(src='/socket.io/socket.io.js')
+    |     
+    script(src='/main.js')
+  |     
+  body
+    |   
     ul.pages
       li.chat.page
-        include header
+        .stripe
+          .titleBox
+            a.title.smallText(href='/')  Riddle Me This!
+          .dropBox
+            .dropdown
+                button.dropbtn ▾ Join a new game
+                  |   
+                  .dropdown-content
+                    a.joinGame(href='#') New public game
+                    |
+                    a.createPrivateGame(href='#') Create private game
+                    |     
+                    a.joinPrivateGame(href='#') Join private game with code
         #lobbyContainer     
-          #userboard
+          .userboard.container
              #user_container
-          #gameContainer
-            p#timer
-            p#riddle
-            p#answer
-            #leaderBoard
+          .gameContainer.container
+            #myProgress
+              #myBar
+            p#timer Ready, set, go!
+            .riddleAnsContainer
+              p#riddle
+              p#answer
+              .leaderBoard
           |         
-          .chatContainer#chatbox
-            ul.messages
+          ul.messages.container
           |       
           input.inputMessage(placeholder='Type here...')
-      li.gameButtonsPage.page
-        .gameButtonToggle
-          p#gameButtonToggleText ⏵
-        .gameButtonsContainer
-          button.gameAction.joinGame(placeholder='Join Game') New Public Game
-          |          
-          br
-          |
-          button.gameAction.createPrivateGame(placeholder='Create New Game') New Private Game
-          |          
-          br
-          |
-          button.gameAction.joinPrivateGame(placeholder='Join Existing Game') Join Private Game
-          |
-          br
       li.login.page
-        include header
         #mainpageContainer
           #user_inputs
             #avatar_select
-              .avatar.left_btn
-                button.select_button(type='button') ◀
-                button.select_button(type='button') ◀ 
-                button.select_button(type='button') ◀
-              .avatar#avatar_image
+              .btn_group.left_btn
+                - for(let x = 0; x < 3; x++)
+                  button.select_button.btn_left(type='button') ◀
+              .btn_group.right_btn
+                - for(let x = 0; x < 3; x++)
+                  button.select_button.btn_right(type='button') ▶
+              #avatar_image
                 .shape.avi_head.circle#av
                   .shape-inner.avi_head
                       .shape-front.avi_head 
@@ -81,54 +76,23 @@ block content
                           p#face ^.^
                       .shape-back.avi_head
                         p#rmt RMT
-              .avatar.right_btn
-                button.select_button(type='button') ▶
-                button.select_button(type='button') ▶
-                button.select_button(type='button') ▶
-            |                 
-            p.label1  choose your fighter
             #usernamecontainer                 
-                input.input1.usernameInput(type='text', name='username', placeholder=' ☺', required='', maxlength="20")
+                input.input1.usernameInput(type='text', name='username', placeholder='username', required='', maxlength="10")
                 |
                 input#go(type='submit', value='Go!', onkeypress='return event.keyCode != 13')
-                |                       
-                p.label1  nickname
-          #info_container
-            button.accordion(id='collapse in', data-parent='#accordion') How to Play
-            |             
-            .panel(style='max-height:70px;')
-              p.small-text Race against the clock and compete against others to answer riddles! Click "Go!" to start.
-            |             
-            button.accordion(data-parent='#accordion') Updates
-            |
-            .panel
-              p.small-text 9/10 Ver. 0 - RMT is released for testing!
-            |             
-            button.accordion(data-parent='#accordion') About
-            |             
-            .panel
-              p.small-text Riddle Me This! is a timed riddle-guessing game in which you can compete against strangers or friends. 
+                |
+                #privGameContainer
+                  | 
+                  #privGame(data-unchecked='')
+                  div(data-tip='If you have a game code, type it here')
+                    input#privGameCode(type='text', name='privGameCode', placeholder='Private Game')
+
+
+          |
+          #titlediv
+            a.title.largeText(href='/')  Riddle Me This!
         |
         include footer
-        |
-        script.
-          var acc = document.getElementsByClassName("accordion");
-          var i;
-
-          for (i = 0; i < acc.length; i++) {
-            acc[i].addEventListener("click", function() {
-              this.classList.toggle("active");
-              var panel = this.nextElementSibling;
-              if (panel.style.maxHeight)
-              {
-                panel.style.maxHeight = null;
-              } 
-
-              else {
-                panel.style.maxHeight = panel.scrollHeight + "px";
-              } 
-            });
-          }
 
       
 

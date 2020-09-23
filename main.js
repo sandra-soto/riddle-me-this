@@ -2,11 +2,7 @@
 $(function() {
   var FADE_TIME = 150; // ms
   var TYPING_TIMER_LENGTH = 400; // ms
-  var COLORS = [
-  '#ff6961', '#db6b6b', '#ffcb5e', '#ffa530',
-  '#b6ff85', '#6d9e55', '#6bb8db', '#a1ffea',
-  '#9bbde8', '#8c87ab', '#e3adff', '#d9a6de'
-  ];
+  var COLORS = ["#ff8383", "#ff7aa1", "#FF5757", "#ff9257", "#eb8d71", "#db6588"];
 
   // Initialize variables
   var $window = $(window);
@@ -14,7 +10,7 @@ $(function() {
   var $messages = $('.messages'); // Messages area
   var $inputMessage = $('.inputMessage'); // Input message input box
 
-  var $userboard = $('#userboard'); 
+  var $userboard = $('.userboard'); 
   var $gameContainer = $('#gameContainer'); 
 
   var $loginPage = $('.login.page'); // The login page
@@ -39,22 +35,56 @@ $(function() {
   var userList = [];
   var socket = io();
 
+var CorrectMsgs = [' gets it!', "++", " is on fire!", " has the answer!", " - you're doing amazing, sweetie"];
 
 
+$window.on('resize', function(){
+	console.log("resized");
+	let viewport_width = $window.width();
+	console.log(viewport_width);
+
+	if (viewport_width < 690){
+
+		console.log("resize");
+		$("#mainpageContainer").css({'flex-direction': 'column-reverse', 'margin-top': '0px', 'height': '500px'})
+		$("#lobbyContainer").css("flex-direction", "column");
+		$(".container").addClass("horizontal");
+		$(".userboard").css('order', "4");
+		$(".stripe").css({'flex-direction': 'column', 'justify-content':'center', 'padding-left': '40px'})
+		
+	}
+
+	else {
+		$("#mainpageContainer").css({'flex-direction': 'row', 'margin-top': '25vh'})
+		$("#lobbyContainer").css("flex-direction", "row");
+		$(".container").removeClass("horizontal");
+		$(".userboard").css('order', "1");
+		$(".stripe").css({'flex-direction': 'row-reverse', 'justify-content':'flex-end', 'padding-left': '20px'})
+
+	}
+});
+
+$("#privGame").click(function(){
+	if ($("#privGame").text() == "×"){
+		 $("#privGame").html("")
+		 				.css("background-color", "rgba(0,0,0, .1)")
+	}
+	else{
+		$("#privGame").text("×")
+						.css("background-color", "rgba(255,255,255, .3)")
+
+	} 
+});
 
 
   function listUsers(userDict, location, num = "all", style = ""){
-
-  	
   	 for (let [key, value] of userDict.entries()) {
       	num--;
-         eval(`$("#${location}")`).append(`<div id='user_container' ${style}>` + 
-         						`<div class='avi_head_small ${value.avatar.shape}' style='background-color:${getUsernameColor(value.username)}'>`+ "<br>" +
-         							`<p id='face'> ${value.avatar.face}</p>` +
-
-         						"</div>"+
-
-         						`<p id = 'user_info'>${value.username}, ${value.score}` + "</div>");
+         eval(`$(".${location}")`).append(`<div id='user_container' ${style}>` + 
+         						"<div class='user_inner'>" + `<div class='avi_head_small ${value.avatar.shape}' style='background-color:${getUsernameColor(value.username)}'>`+ "<br>" +
+         								`<p id='face'> ${value.avatar.face}</p>` +
+         								"</div>"+`<p id = 'user_info'>${value.username}</p>`+
+         						"</div>" + `<p><span class = "scores">${value.score}<span></p>` + "</div>");
          if(num == 0){
          	return;
          }
@@ -87,7 +117,21 @@ $(function() {
 
 socket.on('TimeUpdate', function(seconds){
 	document.getElementById("timer").innerHTML = seconds + " seconds";
-});
+	console.log(seconds);
+
+	 if ($("#myBar").width() < $("#myProgress").width()){
+	 	  $("#myBar").animate({
+            width: `${(25-seconds+1) * ($("#myProgress").width()/25)}`,
+        }, 1000);
+	 }
+	 else{
+	 	  $("#myBar").animate({
+            width: '0',
+        }, 1000);
+	 }
+
+	 	
+});	
 
 socket.on('RiddleUpdate', function(riddleObj){
 	document.getElementById("riddle").innerHTML = riddleObj.riddle;
@@ -123,15 +167,16 @@ socket.on('RoundWinners', function(players){
 	document.getElementById("riddle").innerHTML = `Leaderboard<br />`;
 	document.getElementById("answer").innerHTML = "\xa0";
 
+	$('.riddleAnsContainer').css("justify-content", "flex-start");
 	listUsers(userDict, "leaderBoard", 3, "style='justify-content:center'");
 	// sleep time expects milliseconds
 	function sleep (time) {
 	  return new Promise((resolve) => setTimeout(resolve, time));
 	}
 
-	// Usage!
 	sleep(5000).then(() => {
-	    $("#leaderBoard").empty();
+	    $(".leaderBoard").empty();
+	    $('.riddleAnsContainer').css("justify-content", "space-evenly");
 	});
 
 
@@ -141,14 +186,11 @@ socket.on('RoundWinners', function(players){
 
   function addParticipantsMessage (data) {
     var message = '';
-    if (data.numUsers === 1) {
-      message += "I walk a lonely road. The only one that I have ever known. One(1) user online";
-    } 
     log(message);
   }
 
   // Sets the client's username
-  function setUsername () {
+  function addNewUser (data={}) {
     username = cleanInput($usernameInput.val().trim());
 
     // If the username is valid
@@ -158,9 +200,11 @@ socket.on('RoundWinners', function(players){
       $loginPage.off('click');
       $currentInput = $inputMessage.focus();
 
-      // Tell the server your username
-      let data = get_avatar();
+      // Tell the server your avatar, username, and game type
+      data = { ...data, ...get_avatar()};
       data['username'] = username; // GO BACK HERE SANDRA 
+
+
       socket.emit('add user', data);
       
     }
@@ -186,8 +230,14 @@ socket.on('RoundWinners', function(players){
   }
 
   // Log a message
-  function log (message, options) {
-    var $el = $('<li>').addClass('log').text(message);
+  function log (message, options, ans=false, data=undefined) {
+    var $el = $('<li>')
+    .text(message)
+    .addClass('log')
+    if (ans){
+    	$el.addClass('correctAnswer')
+    		.css('color', getUsernameColor(data))
+    }
     addMessageElement($el, options);
   }
 
@@ -307,35 +357,12 @@ socket.on('RoundWinners', function(players){
     return COLORS[index];
   }
 
-  function animateGameButtonsPanel(fadeSpeed = 1000, onMode = false, offMode = false){
-    width = $gameButtonsPage.width();
-    console.log(onMode);
-    console.log(width);
-    if (!onMode && gameButtonsToggled){
-      $('.gameAction').fadeOut(fadeSpeed);
-      $gameButtonsPage.animate({
-            width: '0%',
-        }, fadeSpeed);
-
-      gameButtonsToggled = false;
-    }
-    else if(!offMode){
-      $('.gameAction').show();
-      $gameButtonsPage.animate({
-            width: '100%'
-        }, fadeSpeed);
-
-      gameButtonsToggled = true;
-    }
-
-  }
-
   // Keyboard events
 
   $window.keydown(function (event) {
     // Auto-focus the current input when a key is typed
     if (!(event.ctrlKey || event.metaKey || event.altKey)) {
-      $currentInput.focus();
+      //$currentInput.focus();
     }
     // When the client hits ENTER on their keyboard
     if (event.which === 13) {
@@ -344,7 +371,7 @@ socket.on('RoundWinners', function(players){
         socket.emit('stop typing');
         typing = false;
       } else {
-        setUsername();
+        addNewUserHelper();
       }
     }
   });
@@ -353,17 +380,34 @@ socket.on('RoundWinners', function(players){
     updateTyping();
   });
 
+  function addNewUserHelper(){
 
+  	if ($("#privGame").text() == "×"){
+   		console.log("IT IS PRIVATE");
+   		if ($("#privGameCode").val()){
+   			console.log("EXISTING GAME");
+   			addNewUser(data={gameID: cleanInput($("#privGameCode").val().trim())});
+   		}
+   		else
+   		{
+   			console.log("IT DO BE PRIVATE");
+   			addNewUser(data={isPrivate:true});
+   		}
+   	}
+   	else{
+   		console.log("NOTT PRIVATE");
+   		addNewUser();
+   	}
+  }
   // Click and hover events
-
-  // Focus input when clicking anywhere on login page
-  $loginPage.click(function () {
-    $currentInput.focus();
-  });
 
   // alternative to enter key
    $goButton.click(function () { 
-    setUsername();
+   	addNewUserHelper()
+   	
+
+   	
+
   });
 
   // Focus input when clicking on the message input's border
@@ -373,18 +417,27 @@ socket.on('RoundWinners', function(players){
 
 
   $joinGame.click(function () {
+  	socket.emit('leaveGame');
     joinGame();
 
   });
 
   $createPrivateGame.click(function() {
+  	socket.emit('leaveGame');
     joinGame({isPrivate:true});
   });
 
    $joinPrivateGame.click(function () {
+   	socket.emit('leaveGame');
     var gameID = prompt("Enter the game code of the private game you want to join: ", "");
     if(gameID){
-      joinGame({gameID: gameID});
+    	try {
+    		joinGame({gameID: gameID});
+    	}
+    	catch(err) { 
+    		console.log(err)
+    	}
+      
     }
 
   });
@@ -394,21 +447,12 @@ socket.on('RoundWinners', function(players){
   });
 
 
-  $gameActionButton.click(function(){
-    animateGameButtonsPanel(1000);
-  });
-
-  $gameButtonsPage.click(function(e){
-    if(e.target != this) return;
-    animateGameButtonsPanel(1000, null, offMode = true);
-  });
-
 function mod(n, m) {
   return ((n % m) + m) % m;
 }
   var eyes = {0:"^", 1:"•", 2:"*", 3:"u", 4:"ㅠ", 5:"-", 6:"ㅜ", 7:"★", 8:"ㅇ", 9:"◕", 10:"￢", 11:"✧",
-  				 12:"♡", 13:"x", 14:"⌣̀"};
-  var mouths = {0:".", 1:"_", 2:"__", 3: "ㅅ", 4:" ", 5:"◡", 6:"ω", 7:"‿", 6:"‸", 7:"ｪ", 8:"ᴗ", 9:"︹"};
+  				 12:"♡", 13:"x", 14:"⌣̀", 15: "·", 16:"Ǒ", 17: "Π"};
+  var mouths = {0:"_", 1:".", 2:"__", 3: "ㅅ", 4:" ", 5:"◡", 6:"ω", 7:"‿",  7:"ܫ", 8:"ᴗ", 9:"︹", 10:"ε", 11:"‸",};
   var shapes = {0:"circle", 1:"square"};
   var eye_index = 0;
   var mouth_index = 0;
@@ -484,7 +528,7 @@ function mod(n, m) {
   socket.on('login', function (data) {
     connected = true;
     // Display the welcome message
-    var message = "Welcome to Riddle Me This! Have fun!";
+    var message = "Welcome to Riddle Me This!";
     log(message, {
       prepend: true
     });
@@ -494,6 +538,10 @@ function mod(n, m) {
   // Whenever the server emits 'new message', update the chat body
   socket.on('new message', function (data) {
     addChatMessage(data);
+  });
+
+    socket.on('correct answer', function (data) {
+    log(data +  CorrectMsgs[Math.floor((Math.random()*CorrectMsgs.length))], options = undefined, ans = true, data=data);
   });
 
 
@@ -562,5 +610,14 @@ socket.on('leftGame', function (data) {
 });
 
 
+socket.on('joinError', function () {
+   alert("Error, could not add game. Adding random public game instead!");
+});
 
+
+
+});
+
+$(document).ready(function(){
+    $(window).resize();
 });

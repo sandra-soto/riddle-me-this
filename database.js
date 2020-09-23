@@ -56,25 +56,36 @@ async getRiddle(numRiddles){
 }
 
 
+function fix_string(str){
+  str = str.replace(/[!.“”"]*/g, "");
+  return str.trim();
+}
+
+
 async function scraper(ridict, rounds){
   var ridict = {};
   try{
     const result = await allRiddles(ridict);
     let riddle = JSON.parse(JSON.stringify(Object.keys(result)));
     let answer = JSON.parse(JSON.stringify(Object.values(result)));
-    console.log(riddle[0].substring(1,riddle[0].length-1));
-    console.log(answer[0]);
-    saveRiddle(riddle[0].substring(1,riddle[0].length-1), answer[0]);
+
+    let new_riddle = riddle[0].trim();
+    let new_ans = fix_string(answer[0]);
+
+
+    console.log(new_riddle);
+    console.log(new_ans);
+    module.exports.saveRiddle(new_riddle, new_ans);
  
   }
   catch(error){
-      console.log("Error in Scraper: " + error);
+      //console.log("Error in Scraper: " + error);
   }
 }
 
 
-module.exports = new Database();
 
+module.exports = new Database();
 
 
 
@@ -85,5 +96,5 @@ module.exports = new Database();
 
 
 // setInterval(function(){
-//    scraper();},1000); 
+//    scraper();},500); 
 

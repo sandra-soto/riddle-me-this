@@ -1,13 +1,5 @@
 /* contains code for lobby*/
 
-#lobbyContainer
-{
-  display: flex;
-  justify-content: center;
-  margin-top: 2%;
-  height: 100%;
-  width:100%;
-}
 
 
 #privateGameParametersContainer

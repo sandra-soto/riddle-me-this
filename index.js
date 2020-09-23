@@ -14,6 +14,24 @@ var MAX_PLAYERS = 8;
 var ROUNDS = 5;
 var ROUND_TIME = 25;
 var RIDDLES_CALLED = 20;
+var RIDDLE_ADD_TIME = 40000;
+
+/*
+STILL TO BE DONE
+- testing !!!!
+- fix typing before connected
+- timed letters appearing
+- UI for messages sent after correct answer
+- set a default face/username so no disconnect undefined errors appear
+- de-spaghettify userlist js
+- sound FX
+
+IF WANT
+- custom game options
+
+NOT FUNCTIONAL PER SE
+- rename things in code aka fix the pasghetti, get rid of unnecessary things
+*/
 
 
 server.listen(port, function () {
@@ -61,9 +79,10 @@ function riddleAdd(gameID){
      .catch(err => {
        console.error(err)
      });
-   }, 10000);
+   }, RIDDLE_ADD_TIME);
    
 }
+
 
 // creates newGameObject, adds player to game, 
 // and adds the game to the gameCollection
@@ -144,6 +163,7 @@ function killGame(socket) {
     console.log("clearing===========");
      clearInterval(game['timerID']);
      clearInterval(game['riddleAddTimerID']);
+
      game['timerID'] = -1;
 
      --gameCollection.totalGameCount; 
@@ -195,6 +215,12 @@ function gameSeeker (socket, data) {
     else{ // if seeking a specfic game, use that game's id
     	console.log('SEEKING A specific GAME');
       var gameID = data.gameID;
+
+      if (getGame(gameID) == undefined){
+      	console.log("EEEOEORORO")
+      	socket.emit("joinError", gameID);
+      	return gameSeeker(socket, {'isPrivate':data.isPrivate});
+      }
     }
     
     var game = getGame(gameID);
@@ -252,7 +278,8 @@ function beginGame(socket, gameID){
       paused = true;
       socket.player.answered = false;
       round +=1;
-      console.log("ROUND ====", round);
+      console.log("ROUND ====", round, game['id']);
+      //console.log("ROUND ====", round, game['riddles'][game['riddles'].length-1].document);
 
     }
 
@@ -356,6 +383,7 @@ function addRoom(socket, gameID){
 
     // if the game hasn't started yet, start it
     if(getGame(gameID)['timerID'] == -1){
+    	console.log("starting the game????????////");
       beginGame(socket, gameID);
     }
   }
@@ -405,8 +433,9 @@ io.sockets.on('connection', function (socket) {
     if(!game['playerDict'].get(socket.id).answered && answer.answerMatch(getCurrentRiddle(socket.currentRoom).answer,data)){
       game['playerDict'].get(socket.id).answered = true;
       socket.player.score++;
-        io.in(socket.currentRoom).emit('updateUserBoard', "add", {userDict:Array.from(getGame(socket.currentRoom)['playerDict']),
+       io.in(socket.currentRoom).emit('updateUserBoard', "add", {userDict:Array.from(getGame(socket.currentRoom)['playerDict']),
                         player:socket.player});
+       io.in(socket.currentRoom).emit('correct answer', socket.player['username']);
 
     }
     else if(socket.player.answered){
@@ -498,7 +527,9 @@ io.sockets.on('connection', function (socket) {
 
 
   socket.on('joinGame', function (data = {isPrivate:false, gameID:undefined}){
-    joinGame(socket, data);
+  	joinGame(socket, data);
+ 
+    
 
 
   });
