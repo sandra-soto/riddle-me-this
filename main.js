@@ -19,11 +19,7 @@ $(function() {
   var $joinGame = $('.joinGame'); 
   var $joinPrivateGame = $('.joinPrivateGame');
   var $createPrivateGame = $('.createPrivateGame'); 
-  var $gameButtonToggle = $('.gameButtonToggle');
-  var $gameButtonsContainer = $('.gameButtonsContainer');
-  var $gameButtonsPage = $('.gameButtonsPage');
-  var $gameActionButton = $('.gameAction');
-  var gameButtonsToggled = false;
+  
 
   // Prompt for setting a username
   var username;
@@ -32,37 +28,30 @@ $(function() {
   var lastTypingTime;
   var $currentInput = $usernameInput.focus();
 
-  var userList = [];
   var socket = io();
 
-var CorrectMsgs = [' gets it!', "++", " is on fire!", " has the answer!", " - you're doing amazing, sweetie"];
+  var CorrectMsgs = [' gets it!', "++", " is on fire!", " has the answer!", " - you're doing amazing, sweetie"];
 
 
-$window.on('resize', function(){
-	console.log("resized");
-	let viewport_width = $window.width();
-	console.log(viewport_width);
+  $window.on('resize', function(){
+  	console.log("resized");
+  	let viewport_width = $window.width();
+  	console.log(viewport_width);
 
-	if (viewport_width < 690){
+  	// if (viewport_width < 690){
 
-		console.log("resize");
-		$("#mainpageContainer").css({'flex-direction': 'column-reverse', 'margin-top': '0px', 'height': '500px'})
-		$("#lobbyContainer").css("flex-direction", "column");
-		$(".container").addClass("horizontal");
-		$(".userboard").css('order', "4");
-		$(".stripe").css({'flex-direction': 'column', 'justify-content':'center', 'padding-left': '40px'})
-		
-	}
+  	// 	console.log("resize");
+  	// 	$("#mainpageContainer").css({'flex-direction': 'column-reverse', 'margin-top': '0px', 'height': '500px'})
+  	// 	 $(".stripe").css({'flex-direction': 'column', 'justify-content':'center', 'padding-left': '15px'})
+  		
+  	// }
 
-	else {
-		$("#mainpageContainer").css({'flex-direction': 'row', 'margin-top': '25vh'})
-		$("#lobbyContainer").css("flex-direction", "row");
-		$(".container").removeClass("horizontal");
-		$(".userboard").css('order', "1");
-		$(".stripe").css({'flex-direction': 'row-reverse', 'justify-content':'flex-end', 'padding-left': '20px'})
+  	// else {
+  	// 	$("#mainpageContainer").css({'flex-direction': 'row', 'margin-top': '25vh'})
+  	// 	 $(".stripe").css({'flex-direction': 'row-reverse', 'justify-content':'flex-end', 'padding-left': '20px'})
 
-	}
-});
+  	// }
+  });
 
 $("#privGame").click(function(){
 	if ($("#privGame").text() == "×"){
@@ -77,14 +66,24 @@ $("#privGame").click(function(){
 });
 
 
-  function listUsers(userDict, location, num = "all", style = ""){
+  function listUsers(userDict, location, num = "all"){
+    count = 0
   	 for (let [key, value] of userDict.entries()) {
       	num--;
-         eval(`$(".${location}")`).append(`<div id='user_container' ${style}>` + 
-         						"<div class='user_inner'>" + `<div class='avi_head_small ${value.avatar.shape}' style='background-color:${getUsernameColor(value.username)}'>`+ "<br>" +
-         								`<p id='face'> ${value.avatar.face}</p>` +
-         								"</div>"+`<p id = 'user_info'>${value.username}</p>`+
-         						"</div>" + `<p><span class = "scores">${value.score}<span></p>` + "</div>");
+         eval(`$(".${location}")`).append(`<div id='user_container'>` + 
+         						"<div class='user_inner'>" + 
+                        `<div class="shape avi_head_small ${value.avatar.shape}">
+                          <div class="shape-inner avi_head_small" >
+                            <div class="shape-front avi_head_small" style="background-color:${getUsernameColor(value.username)}"><br>
+                              <p id="face">${value.avatar.face}</p>
+                            </div>
+                            <div class="shape-back avi_head_small">
+                              <p class="back_face"> #${++count}</p>
+                            </div>
+                          </div>
+                      </div>
+                    <p id = 'user'>${value.username}</p> </div>
+         						<p><span class = "scores">${value.score}<span></p>` + "</div>");
          if(num == 0){
          	return;
          }
@@ -105,31 +104,16 @@ $("#privGame").click(function(){
     
   });
 
-   socket.on('test', function(mode, data){
-
-   	$gameContainer.css('color', 'grey')
-   	sleep(3000).then(() => {
-	    $gameContainer.css('color', 'black')
-	});
-    
-  });
+  
 
 
 socket.on('TimeUpdate', function(seconds){
 	document.getElementById("timer").innerHTML = seconds + " seconds";
 	console.log(seconds);
-
-	 if ($("#myBar").width() < $("#myProgress").width()){
-	 	  $("#myBar").animate({
-            width: `${(25-seconds+1) * ($("#myProgress").width()/25)}`,
+  let num = 25-seconds
+	$("#myBar").animate({
+            width: `${(num+1) * ($("#myProgress").width()/25)}`,
         }, 1000);
-	 }
-	 else{
-	 	  $("#myBar").animate({
-            width: '0',
-        }, 1000);
-	 }
-
 	 	
 });	
 
@@ -140,7 +124,7 @@ socket.on('RiddleUpdate', function(riddleObj){
 		if(riddleObj.answer[i] == " "){
 			ans += "\xa0\xa0";
 		}
-		else if(riddleObj.answer[i] == "!"||riddleObj.answer[i] == "-"){
+		else if(riddleObj.answer[i] == "-"){
 			ans += riddleObj.answer[i];
 		}
 		else{
@@ -168,7 +152,7 @@ socket.on('RoundWinners', function(players){
 	document.getElementById("answer").innerHTML = "\xa0";
 
 	$('.riddleAnsContainer').css("justify-content", "flex-start");
-	listUsers(userDict, "leaderBoard", 3, "style='justify-content:center'");
+	listUsers(userDict, "leaderBoard", 3);
 	// sleep time expects milliseconds
 	function sleep (time) {
 	  return new Promise((resolve) => setTimeout(resolve, time));
@@ -225,18 +209,20 @@ socket.on('RoundWinners', function(players){
 
       // tell server to execute 'new message' and send along one parameter
       socket.emit('new message', message);
-      console.log("asadas");
     }
   }
 
   // Log a message
-  function log (message, options, ans=false, data=undefined) {
+  function log (message, options, silenced=false, ans=false, data=undefined) {
     var $el = $('<li>')
     .text(message)
     .addClass('log')
     if (ans){
     	$el.addClass('correctAnswer')
     		.css('color', getUsernameColor(data))
+    }
+    else if (silenced){
+      $el.addClass('silencedMessage')
     }
     addMessageElement($el, options);
   }
@@ -253,7 +239,7 @@ socket.on('RoundWinners', function(players){
       $typingMessages.remove();
     }
 
-    var $usernameDiv = $('<span class="username"/>')
+    var $usernameDiv = $('<span class="msg_username"/>')
     .text(data.username)
     .css('color', getUsernameColor(data.username));
     var $messageBodyDiv = $('<span class="messageBody">')
@@ -381,12 +367,11 @@ socket.on('RoundWinners', function(players){
   });
 
   function addNewUserHelper(){
-
   	if ($("#privGame").text() == "×"){
    		console.log("IT IS PRIVATE");
-   		if ($("#privGameCode").val()){
+   		if ($(".privGameCode").val()){
    			console.log("EXISTING GAME");
-   			addNewUser(data={gameID: cleanInput($("#privGameCode").val().trim())});
+   			addNewUser(data={gameID: cleanInput($(".privGameCode").val().trim())});
    		}
    		else
    		{
@@ -404,10 +389,6 @@ socket.on('RoundWinners', function(players){
   // alternative to enter key
    $goButton.click(function () { 
    	addNewUserHelper()
-   	
-
-   	
-
   });
 
   // Focus input when clicking on the message input's border
@@ -417,34 +398,54 @@ socket.on('RoundWinners', function(players){
 
 
   $joinGame.click(function () {
-  	socket.emit('leaveGame');
+  	//socket.emit('leaveGame');
     joinGame();
 
   });
 
   $createPrivateGame.click(function() {
-  	socket.emit('leaveGame');
+  	//socket.emit('leaveGame');
     joinGame({isPrivate:true});
   });
 
    $joinPrivateGame.click(function () {
-   	socket.emit('leaveGame');
-    var gameID = prompt("Enter the game code of the private game you want to join: ", "");
-    if(gameID){
-    	try {
+    console.log("trying to join prvate game");
+    $(".prompt").fadeIn();
+    $(".prompt").css("display", "flex");
+
+     $("#privGameGo").click(function(){
+        let gameID = cleanInput($("#promptCode").val().trim());
+         if (gameID) {
+           // socket.emit('leaveGame');
+            try {
+                joinGame({gameID: gameID});
+                $(".prompt").fadeOut();
+              }
+              catch(err) { 
+                console.log(err)
+              }
+          }
+     });
+
+     $("#cancel").click(function() {
+      $(".prompt").css("display", "none")
+    });
+    /*
+    //let gameID = prompt("Enter the game code of the private game you want to join: ", "");
+    if (gameID === null || gameID.length >= 0) {
+        return; //if cancelled, don't do anything
+    }
+    socket.emit('leaveGame');
+    try {
     		joinGame({gameID: gameID});
     	}
     	catch(err) { 
     		console.log(err)
-    	}
-      
     }
+    */
 
   });
 
-   $gameButtonToggle.hoverIntent(function(){
-    animateGameButtonsPanel(null, onMode = true);
-  });
 
 
 function mod(n, m) {
@@ -452,7 +453,7 @@ function mod(n, m) {
 }
   var eyes = {0:"^", 1:"•", 2:"*", 3:"u", 4:"ㅠ", 5:"-", 6:"ㅜ", 7:"★", 8:"ㅇ", 9:"◕", 10:"￢", 11:"✧",
   				 12:"♡", 13:"x", 14:"⌣̀", 15: "·", 16:"Ǒ", 17: "Π"};
-  var mouths = {0:"_", 1:".", 2:"__", 3: "ㅅ", 4:" ", 5:"◡", 6:"ω", 7:"‿",  7:"ܫ", 8:"ᴗ", 9:"︹", 10:"ε", 11:"‸",};
+  var mouths = {0:".", 1:"_", 2:"__", 3: "ㅅ", 4:" ", 5:"◡", 6:"ω", 7:"‿",  7:"ܫ", 8:"ᴗ", 9:"︹", 10:"ε", 11:"‸",};
   var shapes = {0:"circle", 1:"square"};
   var eye_index = 0;
   var mouth_index = 0;
@@ -473,6 +474,8 @@ function mod(n, m) {
   function get_avatar(){
   	return{face: face_builder(), shape: shapes[get_index('shape')]};
   }
+
+
   	$(`div.left_btn button:nth-child(${1})`).click(function(e){
     	eye_index -=1;
     	document.getElementById("face").innerHTML = face_builder();
@@ -488,9 +491,9 @@ function mod(n, m) {
   $(`div.left_btn button:nth-child(${2})`).click(function(e){
 
     	
-    	$('#av').removeClass(shapes[get_index('shape')]);
+    	$('#avatar').removeClass(shapes[get_index('shape')]);
     	shape_index -=1;
-    	$('#av').addClass(shapes[get_index('shape')]);
+    	$('#avatar').addClass(shapes[get_index('shape')]);
 
 
   });
@@ -498,9 +501,9 @@ function mod(n, m) {
   	$(`div.right_btn button:nth-child(${2})`).click(function(e){
     	
     	
-    	$('#av').removeClass(shapes[get_index('shape')]);
+    	$('#avatar').removeClass(shapes[get_index('shape')]);
     	shape_index -=1;
-    	$('#av').addClass(shapes[get_index('shape')]);
+    	$('#avatar').addClass(shapes[get_index('shape')]);
 
 
   });
@@ -541,7 +544,12 @@ function mod(n, m) {
   });
 
     socket.on('correct answer', function (data) {
-    log(data +  CorrectMsgs[Math.floor((Math.random()*CorrectMsgs.length))], options = undefined, ans = true, data=data);
+   $("#correctAnswerEffect")[0].play();
+    log(data +  CorrectMsgs[Math.floor((Math.random()*CorrectMsgs.length))], silenced = false, options = undefined, ans = true, data=data);
+  });
+
+    socket.on('silenced message', function () {
+    log("You can only get one point per riddle!", options = undefined, silenced=true);
   });
 
 
@@ -554,6 +562,7 @@ function mod(n, m) {
   // Whenever the server emits 'user left', log it in the chat body
   socket.on('user left', function (data) {
     log(data.username + ' left');
+    $("#leaveGameEffect")[0].play();
     addParticipantsMessage(data);
     removeChatTyping(data);
 
@@ -575,7 +584,7 @@ function mod(n, m) {
 
   socket.on('gameCreated', function (data) {
     console.log("Game Created! ID is: " + data.gameID)
-    log(data.username + ' created Game: ' + data.gameID);
+    log(data.username + ' created game with code: ' + data.gameID);
   });
   
   socket.on('disconnect', function () {
@@ -598,20 +607,32 @@ function mod(n, m) {
 //Join into an Existing Game
 function joinGame(data = {isPrivate: false}){
   socket.emit('joinGame', data);
+
+   
 };
 
 socket.on('joinSuccess', function (data) {
   log('Joining the following game: ' + data.gameID);
+  $("#joinGameEffect")[0].play();
+
 
 });
 
 socket.on('leftGame', function (data) {
   log('Leaving Game ' + data.gameID);
+
 });
 
 
 socket.on('joinError', function () {
-   alert("Error, could not add game. Adding random public game instead!");
+  console.log("erroR")
+  $(".error").css("display", "flex");
+   $(".error").fadeIn();
+   sleep(1000).then(() => {
+      $(".error").fadeOut();
+  });
+
+
 });
 
 
@@ -620,4 +641,5 @@ socket.on('joinError', function () {
 
 $(document).ready(function(){
     $(window).resize();
+
 });

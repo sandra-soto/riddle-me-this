@@ -2,31 +2,35 @@ doctype html
 html
   head
     meta(http-equiv='Content-Type', content='text/html; charset=utf-8')
-    meta(name='viewport', content='width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1')
+    meta(name='description', content='Multiplayer riddle-guessing game')
+    meta(name='keywords', content='Riddle, game, multiplayer')
+    meta(name='author', content='Sandra Soto')
 
+    meta(name='viewport', content='width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1')
     |         
     title Riddle Me This!
     |     
     link(href='https://fonts.googleapis.com/css?family=Permanent+Marker&display=swap', rel='stylesheet')
-    link(href='https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap', rel='stylesheet')       
+    link(href='https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap', rel='stylesheet')
+    link(href='https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700&display=swap', rel='stylesheet')
+    | 
     link(rel='stylesheet', href='/static/index.css')
-    link(rel='stylesheet', href='/static/lobby.css')
-    link(rel='stylesheet', href='/static/gameplay.css')
+    |
+    link(rel='manifest', href='/image/site.webmanifest')      
     link(rel='apple-touch-icon', sizes='180x180', href='/image/apple-touch-icon.png')
     link(rel='icon', type='image/png', sizes='32x32', href='/image/favicon-32x32.png')
     link(rel='icon', type='image/png', sizes='16x16', href='/image/favicon-16x16.png')
-    link(rel='manifest', href='/image/site.webmanifest')
+    |
+    audio#joinGameEffect(src='audio/joinGame.wav', type='audio/wav')
+    audio#leaveGameEffect(src='audio/leaveGame.wav', type='audio/wav')
+    audio#correctAnswerEffect(src='audio/correctAnswer.wav', type='audio/wav')
     |
     script(src='https://code.jquery.com/jquery-1.10.2.min.js')  
-    |
-    script(src="/jquery.hoverIntent.js")
-    | 
     script(src='/socket.io/socket.io.js')
-    |     
     script(src='/main.js')
   |     
   body
-    |   
+    | 
     ul.pages
       li.chat.page
         .stripe
@@ -42,10 +46,10 @@ html
                     a.createPrivateGame(href='#') Create private game
                     |     
                     a.joinPrivateGame(href='#') Join private game with code
-        #lobbyContainer     
-          .userboard.container
+        .containerWrapper     
+          .userboard.container.shadow
              #user_container
-          .gameContainer.container
+          .gameContainer.container.shadow
             #myProgress
               #myBar
             p#timer Ready, set, go!
@@ -54,45 +58,50 @@ html
               p#answer
               .leaderBoard
           |         
-          ul.messages.container
+          ul.messages.container.shadow
           |       
           input.inputMessage(placeholder='Type here...')
       li.login.page
+        include footer
         #mainpageContainer
           #user_inputs
             #avatar_select
               .btn_group.left_btn
                 - for(let x = 0; x < 3; x++)
-                  button.select_button.btn_left(type='button') ◀
+                  button.select_button.btn_left(type='button') <
               .btn_group.right_btn
                 - for(let x = 0; x < 3; x++)
-                  button.select_button.btn_right(type='button') ▶
+                  button.select_button.btn_right(type='button') >
               #avatar_image
-                .shape.avi_head.circle#av
-                  .shape-inner.avi_head
-                      .shape-front.avi_head 
-                        .face
-                          br
-                          p#face ^.^
-                      .shape-back.avi_head
-                        p#rmt RMT
+                  #avatar.shape.avi_head.bounce.circle
+                    .face
+                      br
+                      p#face ^.^
+                       
             #usernamecontainer                 
-                input.input1.usernameInput(type='text', name='username', placeholder='username', required='', maxlength="10")
+                input.textInput.usernameInput.shadow(type='text', name='username', placeholder='username', required='', maxlength="15")
                 |
-                input#go(type='submit', value='Go!', onkeypress='return event.keyCode != 13')
+                input#go.enterButton.shadow(type='submit', value='Go!', onkeypress='return event.keyCode != 13')
                 |
                 #privGameContainer
                   | 
                   #privGame(data-unchecked='')
                   div(data-tip='If you have a game code, type it here')
-                    input#privGameCode(type='text', name='privGameCode', placeholder='Private Game')
-
+                    input.privGameCode(type='text', name='privGameCode', placeholder='Private Game')
 
           |
           #titlediv
             a.title.largeText(href='/')  Riddle Me This!
-        |
-        include footer
+      li.prompt.page
+        #promptBox                
+          input.privGameCode#promptCode(type='text', name='privGameCode', placeholder='Enter code here...')
+          input#cancel.enterButton(type='submit', value='Cancel')
+          input#privGameGo.enterButton(type='submit', value='Go!', onkeypress='return event.keyCode != 13')
+      li.error.page
+        #promptBox 
+          p.log Error, could not add game. Please enter a valid code.
+        
+            
 
       
 
